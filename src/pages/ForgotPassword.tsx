@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import forgotImage from '@/images/forgot-password-image.png'
 
 export default function Login() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export default function Login() {
     <div className="flex h-screen w-full overflow-hidden">
       <div className="hidden md:flex w-1/2 bg-gradient-to-br from-[#0D9A83] to-[#3CCF9B] items-center justify-center relative ">
         <img
-          src="src/images/login-image.png"
+          src={forgotImage}
           alt="Illustration"
           className="w-5/6 max-w-lg rounded-[40px] object-cover shadow-md"
         />

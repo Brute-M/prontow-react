@@ -11,7 +11,6 @@ import ProductManagement from "./pages/ProductManagement";
 import OrderManagement from "./pages/OrderManagement";
 import InventoryTracking from "./pages/InventoryTracking";
 import CustomerRelationship from "./pages/CustomerRelationship";
-// import BillGeneration from "./pages/BillGeneration";
 import NotFound from "./pages/NotFound";
 import Profile from "./pages/Profile";
 import Opinio from "./pages/Opinio";
@@ -22,6 +21,8 @@ import AskQuestion from "./games/AskQuestion";
 import PaymentsAndSettlements from "./pages/PaymentsAndSettlements";
 import Support from "./pages/Support";
 import Settings from "./pages/Settings";
+import SupportDetails from "./pages/SupportDetails";
+import GeneralSettings from "./pages/GeneralSettings";
 
 const queryClient = new QueryClient();
 
@@ -34,7 +35,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="settings/forgot-password" element={<ForgotPassword />} />
           <Route path="/2fa" element={<TwoFactorAuth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/products" element={<ProductManagement />} />
@@ -42,9 +43,13 @@ const App = () => (
           <Route path="/inventory" element={<InventoryTracking />} />
           <Route path="/customers" element={<CustomerRelationship />} />
           <Route path="/payments-and-settlements" element={<PaymentsAndSettlements />} />
+
           <Route path="/support" element={<Support />} />
+          <Route path="/support/support-details" element={<SupportDetails />} />
+
           <Route path="/settings" element={<Settings />} />
-          {/* <Route path="/bills" element={<BillGeneration />} /> */}
+          <Route path="/settings/general" element={<GeneralSettings />} />
+
           <Route path="/profile" element={<Profile />} />
 
           <Route path="/games" element={<Games />} />

@@ -1,6 +1,7 @@
 import { AdminLayout } from '@/components/AdminLayout';
 import React, { useState } from 'react';
 import { Search, SlidersHorizontal } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -26,6 +27,7 @@ const tickets: Ticket[] = [
 ];
 
 function Support() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
 
   // Calculate statistics
@@ -39,45 +41,45 @@ function Support() {
         {/* Statistics Cards */}
         <div className="flex gap-4">
           <div className="bg-[#1BA9D8] text-white rounded-2xl px-8 py-6 min-w-[200px]">
-            <div className="text-4xl font-bold mb-1">{totalComplaints}</div>
-            <div className="text-sm font-medium">Total Complaints</div>
+            <div className="text-4xl font-bold mb-1 text-center">{totalComplaints}</div>
+            <div className="text-sm font-medium text-center">Total Complaints</div>
           </div>
           
           <div className="bg-[#4CAF50] text-white rounded-2xl px-8 py-6 min-w-[200px]">
-            <div className="text-4xl font-bold mb-1">{resolvedComplaints}</div>
-            <div className="text-sm font-medium">Resolved Complaints</div>
+            <div className="text-4xl font-bold mb-1 text-center">{resolvedComplaints}</div>
+            <div className="text-sm font-medium text-center">Resolved Complaints</div>
           </div>
           
           <div className="bg-[#FFA726] text-white rounded-2xl px-8 py-6 min-w-[200px]">
-            <div className="text-4xl font-bold mb-1">{pendingComplaints}</div>
-            <div className="text-sm font-medium">Pending Complaints</div>
+            <div className="text-4xl font-bold mb-1 text-center">{pendingComplaints}</div>
+            <div className="text-sm font-medium text-center">Pending Complaints</div>
           </div>
 
-          {/* Search Bar */}
-          <div className="flex-1 flex gap-3 ml-auto">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search By Ticket ID"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-4 h-full bg-blue-50/50 border-0 rounded-full text-base"
-              />
-            </div>
-            <Button
-              size="icon"
-              className="w-14 h-14 rounded-full bg-[#119D82] hover:bg-[#0D7A65]"
-            >
-              <Search className="w-5 h-5" />
-            </Button>
-            <Button
-              size="icon"
-              className="w-14 h-14 rounded-full bg-[#119D82] hover:bg-[#0D7A65]"
-            >
-              <SlidersHorizontal className="w-5 h-5" />
-            </Button>
-          </div>
+          {/* Search Bar Section */}
+<div className="flex items-center gap-3 ml-auto">
+  <Input
+    type="text"
+    placeholder="Search By Ticket ID"
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+    className="h-[60px] w-[275px] rounded-full text-base border border-gray-300 focus:ring-0 focus:outline-none bg-[#DBE9FF]"
+  />
+
+  <Button
+    size="icon"
+    className="h-[60px] w-[60px] rounded-full bg-[#1BA9D8] hover:bg-[#1693BB] flex items-center justify-center"
+  >
+    <Search className="w-6 h-6 text-white" />
+  </Button>
+
+  <Button
+    size="icon"
+    className="h-[60px] w-[60px] rounded-full bg-[#1BA9D8] hover:bg-[#1693BB] flex items-center justify-center"
+  >
+    <SlidersHorizontal className="w-6 h-6 text-white" />
+  </Button>
+</div>
+
         </div>
 
         {/* Table */}
@@ -110,6 +112,7 @@ function Support() {
                 {tickets.map((ticket, index) => (
                   <tr
                     key={index}
+                    onClick={() => navigate(`/support/support-details`)}
                     className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
                   >
                     <td className="px-6 py-4 text-sm text-gray-900 font-medium">
