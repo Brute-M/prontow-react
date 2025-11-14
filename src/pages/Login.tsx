@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import axios from "axios";
+import loginImage from '@/images/login-image.png'
+
 
 export default function Login() {
   const navigate = useNavigate();
@@ -23,16 +25,19 @@ export default function Login() {
           password,
         }
       );
-      // Login successful, proceed to 2FA (token will be provided after OTP verification)
-      navigate("/2fa");
-      const tempToken = response.data?.data?.tempToken;
 
-      if (response.status === 200 && tempToken) {
-        // Store the temporary token to be used in the 2FA step
-        localStorage.setItem("tempToken", tempToken);
+      if (response.data?.status && response.data?.data?.otp) {
+        // Store email for 2FA verification
+        localStorage.setItem("loginEmail", email);
+        localStorage.setItem("isNewUser", response.data.data.isNew.toString());
+        
+        // Navigate to 2FA page - NO ALERT HERE
         navigate("/2fa");
+        
+        // Remove console.log in production
+        // console.log("OTP received:", response.data.data.otp);
       } else {
-        alert(response.data?.message || "Login successful, but no temporary token received.");
+        alert(response.data?.message || "Login failed!");
       }
 
     } catch (error: any) {
@@ -46,8 +51,8 @@ export default function Login() {
     <div className="flex h-screen w-full overflow-hidden">
       <div className="hidden md:flex w-1/2 bg-gradient-to-br from-[#0D9A83] to-[#3CCF9B] items-center justify-center relative ">
         <img
-          src="src/images/login-image.png"
-          alt="Illustration"
+          src={loginImage}
+          alt="Login Image"
           className="w-5/6 max-w-lg rounded-[40px] object-cover shadow-md"
         />
       </div>
@@ -114,7 +119,7 @@ export default function Login() {
                 </label>
               </div>
               <Link
-                to="/forgot-password"
+                to="/settings/forgot-password"
                 className="text-sm text-[#0B8A74] hover:underline"
               >
                 Forgot Password?
@@ -128,16 +133,6 @@ export default function Login() {
             >
               {loading ? "Logging in..." : "Log In"}
             </Button>
-
-            <p className="text-center text-sm text-gray-600">
-              Didn’t have an account?{" "}
-              <Link
-                to="/"
-                className="text-[#0B8A74] font-medium hover:underline"
-              >
-                Sign Up
-              </Link>
-            </p>
           </form>
         </div>
       </div>

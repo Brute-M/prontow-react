@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MoreVertical, Plus, Eye } from "lucide-react";
+import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -12,15 +12,35 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { getOrders } from "@/adminApi/orderApi";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { getOrders, updateOrderStatus } from "@/adminApi/orderApi";
 import { toast } from "sonner";
 
 export default function OrderManagement() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [updating, setUpdating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Status update form state
+  const [statusForm, setStatusForm] = useState({
+    status: "",
+    trackingNumber: "",
+    carrier: "",
+    estimatedDelivery: ""
+  });
+
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -41,10 +61,43 @@ export default function OrderManagement() {
     fetchOrders();
   }, []);
 
-  const totalPages = Math.ceil(orders.length / itemsPerPage);
+  // Filter orders based on search term
+  const filteredOrders = Array.isArray(orders)
+    ? orders.filter((order: any) => {
+        // Return all orders if search is empty
+        if (!searchTerm || searchTerm.trim() === "") {
+          return true;
+        }
+
+        const search = searchTerm.toLowerCase().trim();
+
+        // Check each field for matches
+        const orderId = (order?.orderId || order?._id || "").toLowerCase();
+        const customerName = (order?.user?.name || "").toLowerCase();
+        const customerEmail = (order?.user?.email || "").toLowerCase();
+        const status = (order?.status || "").toLowerCase();
+        const paymentMethod = (order?.paymentMethod || "").toLowerCase();
+
+        // Return true if any field contains the search term
+        return (
+          orderId.includes(search) ||
+          customerName.includes(search) ||
+          customerEmail.includes(search) ||
+          status.includes(search) ||
+          paymentMethod.includes(search)
+        );
+      })
+    : [];
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentOrders = orders.slice(startIndex, endIndex);
+  const currentOrders = filteredOrders.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -55,6 +108,70 @@ export default function OrderManagement() {
       Cancelled: "bg-red-100 text-red-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!selectedOrder || !statusForm.status) {
+      toast.error("Please select a status");
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const payload: any = {
+        status: statusForm.status,
+      };
+
+      if (statusForm.trackingNumber) {
+        payload.trackingNumber = statusForm.trackingNumber;
+      }
+      if (statusForm.carrier) {
+        payload.carrier = statusForm.carrier;
+      }
+      if (statusForm.estimatedDelivery) {
+        payload.estimatedDelivery = new Date(statusForm.estimatedDelivery).toISOString();
+      }
+
+      await updateOrderStatus(selectedOrder._id, payload);
+      
+      // Update the order in the local state
+      setOrders((prevOrders) =>
+        prevOrders.map((order: any) =>
+          order._id === selectedOrder._id
+            ? { ...order, ...payload }
+            : order
+        )
+      );
+
+      toast.success("Order status updated successfully!");
+      setUpdateDialogOpen(false);
+      
+      // Reset form
+      setStatusForm({
+        status: "",
+        trackingNumber: "",
+        carrier: "",
+        estimatedDelivery: ""
+      });
+    } catch (error: any) {
+      console.error("Failed to update order status:", error);
+      toast.error(error?.response?.data?.message || "Failed to update order status");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const openUpdateDialog = (order: any) => {
+    setSelectedOrder(order);
+    setStatusForm({
+      status: order.status || "",
+      trackingNumber: order.trackingNumber || "",
+      carrier: order.carrier || "",
+      estimatedDelivery: order.estimatedDelivery 
+        ? new Date(order.estimatedDelivery).toISOString().slice(0, 16)
+        : ""
+    });
+    setUpdateDialogOpen(true);
   };
 
   if (loading) {
@@ -68,20 +185,15 @@ export default function OrderManagement() {
   return (
     <AdminLayout title="Order Management">
       <div className="space-y-6">
-        {/* Header Actions */}
+        {/* Header Actions - Only Search Bar */}
         <div className="flex flex-wrap gap-4 items-center">
-          <Button
-            variant="secondary"
-            className="rounded-full bg-[#119D82] hover:bg-[#0e866f] text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Order
-          </Button>
           <div className="flex-1 min-w-[200px] max-w-md relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
-              placeholder="Search by order number or customer"
+              placeholder="Search by order ID or customer name"
               className="pl-10 bg-muted border-0"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
@@ -92,88 +204,107 @@ export default function OrderManagement() {
             <table className="w-full">
               <thead className="border-b border-border">
                 <tr className="bg-[#E8E8C6] text-gray-700 text-left">
-                  <th className="px-6 py-4 font-medium">Order ID</th>
-                  <th className="px-6 py-4 font-medium">Customer</th>
-                  <th className="px-6 py-4 font-medium">Date</th>
-                  <th className="px-6 py-4 font-medium">Payment</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Total</th>
-                  <th className="px-6 py-4 font-medium">Action</th>
-                  <th className="px-6 py-4 font-medium">Return Rate</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Order ID</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Customer</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Date</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Payment</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Status</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Total</th>
+                  <th className="px-16 py-4 font-medium whitespace-nowrap">Actions</th>
+                  <th className="px-6 py-4 font-medium whitespace-nowrap">Return Rate</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {currentOrders.map((order: any) => (
-                  <tr key={order._id} className="text-sm hover:bg-muted/50">
-                    <td className="px-6 py-4 font-medium">#{order.orderId || order._id.slice(-6)}</td>
-                    <td className="px-6 py-4">{order.user?.name || "N/A"}</td>
-                    <td className="px-6 py-4">{new Date(order.createdAt).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">{order.paymentMethod || "N/A"}</td>
-                    <td className="px-6 py-4">
-                      <Badge className={getStatusColor(order.status)}>
-                        {order.status}
-                      </Badge>
+                {currentOrders.length > 0 ? (
+                  currentOrders.map((order: any) => (
+                    <tr key={order._id} className="text-sm hover:bg-muted/50">
+                      <td className="px-6 py-4 font-medium whitespace-nowrap">#{order.orderId || order._id.slice(-6)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{order.user?.name || "N/A"}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{new Date(order.createdAt).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{order.paymentMethod || "N/A"}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge className={getStatusColor(order.status)}>
+                          {order.status}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 font-medium whitespace-nowrap">Rs. {order.totalPrice}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setViewDialogOpen(true);
+                            }}
+                          >
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-[#119D82] hover:bg-[#0e866f] text-white"
+                            onClick={() => openUpdateDialog(order)}
+                          >
+                            Update Status
+                          </Button>
+                        </div>
+                      </td>
+                      <td className="px-14 py-4 whitespace-nowrap">{order.returnRate || "0%"}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                      {searchTerm ? "No orders found matching your search" : "No orders found"}
                     </td>
-                    <td className="px-6 py-4 font-medium">Rs. {order.totalAmount}</td>
-                    <td className="px-6 py-4">
-                      <Button
-                        size="sm"
-                        className="bg-[#119D82] hover:bg-[#0e866f] text-white"
-                        onClick={() => {
-                          setSelectedOrder(order);
-                          setViewDialogOpen(true);
-                        }}
-                      >
-                        View
-                      </Button>
-                    </td>
-                    <td className="px-6 py-4">{order.returnRate || "0%"}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-border">
-            <div className="text-sm text-muted-foreground">
-              Showing {startIndex + 1} to {Math.min(endIndex, orders.length)} of{" "}
-              {orders.length} entries
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              {Array.from(
-                { length: Math.min(5, totalPages) },
-                (_, i) => i + 1
-              ).map((page) => (
+          {filteredOrders.length > 0 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredOrders.length)} of{" "}
+                {filteredOrders.length} entries
+              </div>
+              <div className="flex gap-2">
                 <Button
-                  key={page}
-                  variant={currentPage === page ? "default" : "outline"}
+                  variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(page)}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
                 >
-                  {page}
+                  Previous
                 </Button>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setCurrentPage((p) => Math.min(totalPages, p + 1))
-                }
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
+                {Array.from(
+                  { length: Math.min(5, totalPages) },
+                  (_, i) => i + 1
+                ).map((page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                  >
+                    {page}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
@@ -182,27 +313,33 @@ export default function OrderManagement() {
         <DialogContent className="w-full max-w-lg">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
-            <DialogDescription>{selectedOrder?.orderNo}</DialogDescription>
+            <DialogDescription>
+              #{selectedOrder?.orderId || selectedOrder?._id?.slice(-6)}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Customer</p>
-                <p className="font-medium">{selectedOrder?.customer}</p>
+                <p className="font-medium">{selectedOrder?.user?.name || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Date</p>
-                <p className="font-medium">{selectedOrder?.date}</p>
+                <p className="font-medium">
+                  {selectedOrder?.createdAt 
+                    ? new Date(selectedOrder.createdAt).toLocaleDateString()
+                    : "N/A"}
+                </p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Payment</p>
-                <p className="font-medium">{selectedOrder?.payment}</p>
+                <p className="font-medium">{selectedOrder?.paymentMethod || "N/A"}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Amount</p>
-                <p className="font-medium">{selectedOrder?.total}</p>
+                <p className="font-medium">Rs. {selectedOrder?.totalPrice || "N/A"}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -214,13 +351,111 @@ export default function OrderManagement() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Return Rate</p>
-                <p className="font-medium">{selectedOrder?.returnRate}</p>
+                <p className="font-medium">{selectedOrder?.returnRate || "0%"}</p>
               </div>
             </div>
+            {selectedOrder?.trackingNumber && (
+              <div>
+                <p className="text-sm text-muted-foreground">Tracking Number</p>
+                <p className="font-medium">{selectedOrder.trackingNumber}</p>
+              </div>
+            )}
+            {selectedOrder?.carrier && (
+              <div>
+                <p className="text-sm text-muted-foreground">Carrier</p>
+                <p className="font-medium">{selectedOrder.carrier}</p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Status Dialog */}
+      <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+        <DialogContent className="w-full max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Update Order Status</DialogTitle>
+            <DialogDescription>
+              Order #{selectedOrder?.orderId || selectedOrder?._id?.slice(-6)}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status *</Label>
+              <Select
+                value={statusForm.status}
+                onValueChange={(value) =>
+                  setStatusForm({ ...statusForm, status: value })
+                }
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                  <SelectItem value="Processing">Processing</SelectItem>
+                  <SelectItem value="Shipped">Shipped</SelectItem>
+                  <SelectItem value="Delivered">Delivered</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="trackingNumber">Tracking Number</Label>
+              <Input
+                id="trackingNumber"
+                placeholder="TRACK123456789"
+                value={statusForm.trackingNumber}
+                onChange={(e) =>
+                  setStatusForm({ ...statusForm, trackingNumber: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="carrier">Carrier</Label>
+              <Input
+                id="carrier"
+                placeholder="FedEx, UPS, DHL, etc."
+                value={statusForm.carrier}
+                onChange={(e) =>
+                  setStatusForm({ ...statusForm, carrier: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="estimatedDelivery">Estimated Delivery</Label>
+              <Input
+                id="estimatedDelivery"
+                type="datetime-local"
+                value={statusForm.estimatedDelivery}
+                onChange={(e) =>
+                  setStatusForm({ ...statusForm, estimatedDelivery: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setUpdateDialogOpen(false)}
+              disabled={updating}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-[#119D82] hover:bg-[#0e866f]"
+              onClick={handleUpdateStatus}
+              disabled={updating || !statusForm.status}
+            >
+              {updating ? "Updating..." : "Update Status"}
             </Button>
           </DialogFooter>
         </DialogContent>

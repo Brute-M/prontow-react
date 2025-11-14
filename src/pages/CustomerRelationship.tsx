@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
 import {
   Drawer,
   DrawerContent,
@@ -30,7 +29,7 @@ import {
 const initialCustomers = Array.from({ length: 50 }, (_, i) => ({
   id: i + 1,
   sno: `CGS${String(i + 1).padStart(3, "0")}`,
-  name: "Aish Verma",
+  name: i % 3 === 0 ? "Aish Verma" : i % 3 === 1 ? "Rahul Mehta" : "Simran Kaur",
   phone: "+91 9876543210",
   scoreCode: "SC-102",
   status: i % 2 === 0 ? "Active" : "Blocked",
@@ -43,14 +42,16 @@ export default function CustomerRelationship() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const itemsPerPage = 8;
-  const totalPages = Math.ceil(customers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
 
+  // ✅ Filter customers based on search
   const filteredCustomers = customers.filter((customer) =>
     customer.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // ✅ Recalculate pagination based on filtered list
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
   const currentCustomers = filteredCustomers.slice(startIndex, endIndex);
 
   return (
@@ -67,18 +68,23 @@ export default function CustomerRelationship() {
               Date Range ▼
             </Button>
 
+            {/* ✅ Fixed Search Bar */}
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
               <Input
                 type="text"
                 placeholder="Search by name"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 rounded-full bg-[#E8E8C6] border-none focus-visible:ring-0 text-gray-700 placeholder:text-gray-600 w-full"
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1); // Reset to first page when searching
+                }}
+                className="pl-9 rounded-full bg-[#E8E8C6] border-none focus-visible:ring-0 text-gray-700 placeholder:text-gray-600 w-full"
               />
             </div>
           </div>
 
+          {/* Add Customer Drawer */}
           <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
             <DrawerTrigger asChild>
               <Button className="rounded-full bg-[#119D82] hover:bg-[#0e866f] text-white px-5 w-full sm:w-auto">
@@ -86,68 +92,65 @@ export default function CustomerRelationship() {
               </Button>
             </DrawerTrigger>
 
-            <DrawerContent
-              className="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-xl p-6 overflow-y-auto transition-transform duration-300 ease-in-out"
-              style={{
-                transform: isDrawerOpen ? "translateX(0)" : "translateX(100%)",
-              }}
-            >
-              <DrawerHeader>
-                <DrawerTitle className="text-lg font-semibold mb-4">
-                  Add Customer
-                </DrawerTitle>
-              </DrawerHeader>
+            <DrawerContent className="fixed top-0 left-0 h-screen/10 w-full max-w-md bg-white shadow-2xl">
+              <div className="flex flex-col h-full">
+                <DrawerHeader className="border-b px-6 py-5">
+                  <DrawerTitle className="text-xl font-semibold text-gray-900">
+                    Add Customer
+                  </DrawerTitle>
+                </DrawerHeader>
 
-              <div className="space-y-4">
-                <div>
-                  <Input placeholder="Name" className="mt-1" />
-                </div>
-                <div>
-                  <Input placeholder="Mobile Number" className="mt-1" />
-                </div>
-                <div>
-                  <Input placeholder="Email" className="mt-1" />
-                </div>
-                <div>
-                  <Input placeholder="DD/MM/YY" className="mt-1" />
-                </div>
-                <div>
-                  <Select>
-                    <SelectTrigger className="w-full mt-1">
-                      <SelectValue placeholder="Marital status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="single">Single</SelectItem>
-                      <SelectItem value="married">Married</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Input placeholder="Anniversary Date" className="mt-1" />
-                </div>
-                <div>
-                  <Select>
-                    <SelectTrigger className="w-full mt-1">
-                      <SelectValue placeholder="Gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <DrawerFooter className="mt-6">
-                <Button className="w-full bg-green-700 hover:bg-green-800 text-white">
-                  Add
-                </Button>
-                <DrawerClose asChild>
-                  <Button variant="outline" className="w-full">
-                    Cancel
+                <div className="flex-1 overflow-y-auto px-6 py-6">
+                  <div className="space-y-5">
+                    <Input 
+                      placeholder="Name" 
+                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
+                    />
+                    <Input 
+                      placeholder="Mobile Number" 
+                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
+                    />
+                    <Input 
+                      placeholder="Email" 
+                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
+                    />
+                    <Input 
+                      placeholder="DD/MM/YY" 
+                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
+                    />
+                    <Select>
+                      <SelectTrigger className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600">
+                        <SelectValue placeholder="Marital Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="single">Single</SelectItem>
+                        <SelectItem value="married">Married</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input 
+                      placeholder="Anniversary" 
+                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
+                    />
+                    <Select>
+                      <SelectTrigger className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600">
+                        <SelectValue placeholder="Gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button className="w-full h-12 bg-green-700 hover:bg-green-800 text-white rounded-lg text-base font-medium">
+                    Add
                   </Button>
-                </DrawerClose>
-              </DrawerFooter>
+                  </div>
+                </div>
+
+                <DrawerFooter className="px-6 py-6 space-y-3">
+                  
+
+                </DrawerFooter>
+              </div>
             </DrawerContent>
           </Drawer>
         </div>
@@ -162,69 +165,75 @@ export default function CustomerRelationship() {
                 <th className="px-4 sm:px-6 py-3 font-medium">Phone Number</th>
                 <th className="px-4 sm:px-6 py-3 font-medium">Score Code</th>
                 <th className="px-4 sm:px-6 py-3 font-medium">Status</th>
-                <th className="px-4 sm:px-6 py-3 font-medium text-center">
-                  Action
-                </th>
+                <th className="px-4 sm:px-6 py-3 font-medium text-center">Action</th>
               </tr>
             </thead>
 
             <tbody>
-              {currentCustomers.map((customer) => (
-                <tr
-                  key={customer.id}
-                  className="border-t hover:bg-gray-50 transition text-gray-800"
-                >
-                  <td className="px-4 sm:px-6 py-3">{customer.sno}</td>
-                  <td className="px-4 sm:px-6 py-3">{customer.name}</td>
-                  <td className="px-4 sm:px-6 py-3">{customer.phone}</td>
-                  <td className="px-4 sm:px-6 py-3">{customer.scoreCode}</td>
-                  <td className="px-4 sm:px-6 py-3">
-                    <span
-                      className={`font-medium ${
-                        customer.status === "Active"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      {customer.status}
-                    </span>
-                  </td>
-
-                  <td className="px-4 sm:px-6 py-3">
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-red-600 text-white hover:bg-red-700 px-3 py-1 rounded-md"
+              {currentCustomers.length > 0 ? (
+                currentCustomers.map((customer) => (
+                  <tr
+                    key={customer.id}
+                    className="border-t hover:bg-gray-50 transition text-gray-800"
+                  >
+                    <td className="px-4 sm:px-6 py-3">{customer.sno}</td>
+                    <td className="px-4 sm:px-6 py-3">{customer.name}</td>
+                    <td className="px-4 sm:px-6 py-3">{customer.phone}</td>
+                    <td className="px-4 sm:px-6 py-3">{customer.scoreCode}</td>
+                    <td className="px-4 sm:px-6 py-3">
+                      <span
+                        className={`font-medium ${
+                          customer.status === "Active"
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
                       >
-                        Block
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-gray-800 text-white hover:bg-gray-900 px-3 py-1 rounded-md"
-                      >
-                        Unblock
-                      </Button>
+                        {customer.status}
+                      </span>
+                    </td>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="w-8 h-8 rounded-md border-gray-300"
-                          >
-                            <MoreVertical className="w-4 h-4 text-gray-600" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View Details</DropdownMenuItem>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem>Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                    <td className="px-4 sm:px-6 py-3 text-center">
+                      <div className="flex justify-center gap-2 flex-wrap">
+                        <Button
+                          size="sm"
+                          className="bg-red-600 text-white hover:bg-red-700 px-3 py-1 rounded-md"
+                        >
+                          Block
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-gray-800 text-white hover:bg-gray-900 px-3 py-1 rounded-md"
+                        >
+                          Unblock
+                        </Button>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="w-8 h-8 rounded-md border-gray-300"
+                            >
+                              <MoreVertical className="w-4 h-4 text-gray-600" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>View Details</DropdownMenuItem>
+                            <DropdownMenuItem>Edit</DropdownMenuItem>
+                            <DropdownMenuItem>Delete</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="text-center py-6 text-gray-500">
+                    No customers found
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

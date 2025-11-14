@@ -1,6 +1,9 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { GameCard } from '@/components/GameCard';
 import { useNavigate } from "react-router-dom";
+import spinImage from '@/images/spin-the-wheel.png'
+import opinioImage from '@/images/opinio.png'
+
 
 function Games() {
   const navigate = useNavigate();
@@ -16,7 +19,7 @@ function Games() {
           onClick={() => navigate('/games/spin-the-wheel')}
         >
             <img
-                src="/src/images/spin-the-wheel.png"
+                src={spinImage}
                 alt="Spin The Wheel Icon"
                 className="w-20 h-20 mb-2"
             />
@@ -29,7 +32,7 @@ function Games() {
           onClick={() => navigate('/games/opinio')}
         >
             <img
-                src="/src/images/opinio.png"
+                src={opinioImage}
                 alt="Opinio Icon"
                 className="w-20 h-20 mb-2"
             />

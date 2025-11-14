@@ -9,6 +9,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import prontowLogo from "@/images/Prontow-logo.png";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard" },
@@ -23,10 +24,10 @@ const navigation = [
 ];
 
 export function AppSidebar() {
-  const { open } = useSidebar();
+  const { open, isMobile, setOpenMobile } = useSidebar();
 
   return (
-     <Sidebar className="border-r-0">
+    <Sidebar collapsible="offcanvas" className="border-r-0">
       <SidebarContent className="px-2 py-8">
         <div
           className={cn(
@@ -35,7 +36,7 @@ export function AppSidebar() {
           )}
         >
           <img
-            src="/src/images/Prontow-logo.png" 
+            src={prontowLogo}
             alt="Prontow Logo"
             className={cn(
               "transition-all duration-300",
@@ -59,12 +60,18 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.name}>
                   <NavLink
                     to={item.href}
+                    onClick={() => {
+                      // Close sidebar on mobile after clicking a link
+                      if (isMobile) {
+                        setOpenMobile(false);
+                      }
+                    }}
                     className={({ isActive }) =>
                       cn(
                         "flex items-center px-6 py-3 text-lg font-bold transition-all rounded-[20px]",
                         isActive
-                          ? "bg-white text-[#119D82] shadow-sm" // Active: White background, green text
-                          : "text-white hover:bg-white hover:text-[#119D82]" // Inactive: White text, changes to white bg and green text on hover
+                          ? "bg-white text-[#119D82] shadow-sm"
+                          : "text-white hover:bg-white hover:text-[#119D82]"
                       )
                     }
                   >

@@ -83,7 +83,6 @@ export default function ProductManagement() {
     packSize: "",
     description: "",
     image: "",
-    productStatus: "active",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -161,12 +160,10 @@ export default function ProductManagement() {
     Object.keys(requiredFields).forEach((field) => {
       const value = formData[field];
       
-      // Check if field is empty or invalid
       if (!value || String(value).trim() === "") {
         newErrors[field] = `${requiredFields[field]} is required.`;
       }
       
-      // Additional validation for numeric fields
       if (field === "mrp" || field === "costPrice") {
         if (Number(value) <= 0) {
           newErrors[field] = `${requiredFields[field]} must be greater than 0.`;
@@ -184,82 +181,79 @@ export default function ProductManagement() {
     return Object.keys(newErrors).length === 0;
   };
 
- const handleSubmit = async () => {
-  if (!validate()) {
-    const requiredFields = {
-      productName: "Product Name",
-      category: "Category",
-      mrp: "MRP",
-      costPrice: "Cost Price",
-      stock: "Stock",
-      gst: "GST",
-    };
-    const missingFields = Object.keys(requiredFields)
-      .filter((field) => !formData[field])
-      .map((field) => requiredFields[field]);
-    alert(
-      `Please fill the following required fields: ${missingFields.join(", ")}`
-    );
-    return;
-  }
-
-  setLoading(true);
-
-  try {
-    // Convert image to base64 if it's a File object
-    let imageData = formData.image || "";
-    if (imageFile && imageFile instanceof File) {
-      imageData = imagePreview; // Use the base64 preview
-    }
-
-    const payload = {
-      brandName: formData.brandName || "",
-      productName: formData.productName,
-      category: formData.category,
-      company: formData.company || "",
-      mrp: parseFloat(formData.mrp),
-      costPrice: parseFloat(formData.costPrice),
-      stock: parseInt(formData.stock),
-      itemCode: formData.itemCode || "",
-      gst: parseFloat(formData.gst),
-      hsnCode: formData.hsnCode || "",
-      size: formData.size || "",
-      discount: formData.discount || "",
-      packSize: formData.packSize || "",
-      description: formData.description || "",
-      image: imageData,
-      productStatus: formData.productStatus || "active",
-    };
-
-    let response;
-    if (editingProduct) {
-      response = await updateProduct({ id: editingProduct._id, data: payload });
-    } else {
-      response = await addProduct({ data: payload });
-    }
-
-    if (response.data?.status) {
+  const handleSubmit = async () => {
+    if (!validate()) {
+      const requiredFields = {
+        productName: "Product Name",
+        category: "Category",
+        mrp: "MRP",
+        costPrice: "Cost Price",
+        stock: "Stock",
+        gst: "GST",
+      };
+      const missingFields = Object.keys(requiredFields)
+        .filter((field) => !formData[field])
+        .map((field) => requiredFields[field]);
       alert(
-        response.data.message ||
-          (editingProduct
-            ? "✅ Product updated successfully!"
-            : "✅ Product added successfully!")
+        `Please fill the following required fields: ${missingFields.join(", ")}`
       );
-      setShowForm(false);
-      setEditingProduct(null);
-      resetForm();
-      await fetchProducts();
-    } else {
-      alert(response.data?.message || "Failed to save product");
+      return;
     }
-  } catch (err) {
-    console.error("❌ Submit Error:", err);
-    alert(err.response?.data?.message || "Failed to save product");
-  } finally {
-    setLoading(false);
-  }
-};
 
+    setLoading(true);
+
+    try {
+      let imageData = formData.image || "";
+      if (imageFile && imageFile instanceof File) {
+        imageData = imagePreview;
+      }
+
+      const payload = {
+        brandName: formData.brandName || "",
+        productName: formData.productName,
+        category: formData.category,
+        company: formData.company || "",
+        mrp: parseFloat(formData.mrp),
+        costPrice: parseFloat(formData.costPrice),
+        stock: parseInt(formData.stock),
+        itemCode: formData.itemCode || "",
+        gst: parseFloat(formData.gst),
+        hsnCode: formData.hsnCode || "",
+        size: formData.size || "",
+        discount: formData.discount || "",
+        packSize: formData.packSize || "",
+        description: formData.description || "",
+        image: imageData,
+      };
+
+      let response;
+      if (editingProduct) {
+        response = await updateProduct({ id: editingProduct._id, data: payload });
+      } else {
+        response = await addProduct({ data: payload });
+      }
+
+      if (response.data?.status) {
+        alert(
+          response.data.message ||
+            (editingProduct
+              ? "✅ Product updated successfully!"
+              : "✅ Product added successfully!")
+        );
+        setShowForm(false);
+        setEditingProduct(null);
+        resetForm();
+        await fetchProducts();
+      } else {
+        alert(response.data?.message || "Failed to save product");
+      }
+    } catch (err) {
+      console.error("❌ Submit Error:", err);
+      alert(err.response?.data?.message || "Failed to save product");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
@@ -330,7 +324,6 @@ export default function ProductManagement() {
       packSize: "",
       description: "",
       image: "",
-      productStatus: "active",
     });
     setImagePreview(null);
     setImageFile(null);
@@ -355,7 +348,6 @@ export default function ProductManagement() {
       packSize: product.packSize || "",
       description: product.description || "",
       image: product.image || "",
-      productStatus: product.productStatus || "active",
     });
 
     setImagePreview(product.image || null);
@@ -394,64 +386,37 @@ export default function ProductManagement() {
     setFormData((prev) => ({ ...prev, image: "" }));
   };
 
-  const handleStatusToggle = async (product) => {
-  try {
-    const updatedStatus =
-      product.productStatus === "active" ? "inactive" : "active";
-
-    const payload = {
-      brandName: product.brandName || "",
-      productName: product.productName,
-      category: product.category?._id || product.category,
-      company: product.company || "",
-      mrp: parseFloat(product.mrp),
-      costPrice: parseFloat(product.costPrice),
-      stock: parseInt(product.stock),
-      itemCode: product.itemCode || "",
-      gst: parseFloat(product.gst),
-      hsnCode: product.hsnCode || "",
-      size: product.size || "",
-      discount: product.discount || "",
-      packSize: product.packSize || "",
-      description: product.description || "",
-      image: product.image || "",
-      productStatus: updatedStatus,
-    };
-
-    await updateProduct({ id: product._id, data: payload });
-    await fetchProducts();
-  } catch (err) {
-    console.error("Status update error:", err);
-    alert("Failed to update product status");
-  }
-};
-
-
   const capitalizeFirstLetter = (string) => {
     if (!string) return "";
     return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
-  const filteredProducts = Array.isArray(products)
-    ? products.filter((product) => {
-        const search = searchTerm?.toLowerCase()?.trim() || "";
-        if (!search) return true;
+const filteredProducts = Array.isArray(products)
+  ? products.filter((product) => {
+      // Return all products if search is empty
+      if (!searchTerm || searchTerm.trim() === "") {
+        return true;
+      }
 
-        const fields = [
-          product?.productName,
-          product?.brandName,
-          product?.itemCode,
-          product?.category?.name,
-          product?.company,
-        ];
+      const search = searchTerm.toLowerCase().trim();
 
-        return fields.some((field) =>
-          String(field || "")
-            .toLowerCase()
-            .includes(search)
-        );
-      })
-    : [];
+      // Check each field for matches
+      const productName = (product?.productName || "").toLowerCase();
+      const brandName = (product?.brandName || "").toLowerCase();
+      const itemCode = (product?.itemCode || "").toLowerCase();
+      const categoryName = (product?.category?.name || "").toLowerCase();
+      const company = (product?.company || "").toLowerCase();
+
+      // Return true if any field contains the search term
+      return (
+        productName.includes(search) ||
+        brandName.includes(search) ||
+        itemCode.includes(search) ||
+        categoryName.includes(search) ||
+        company.includes(search)
+      );
+    })
+  : [];
 
   const indexOfLast = currentPage * productsPerPage;
   const indexOfFirst = indexOfLast - productsPerPage;
@@ -464,88 +429,158 @@ export default function ProductManagement() {
 
   return (
     <AdminLayout title="Product Management">
-      <div className="space-y-6">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between gap-3 sm:items-center flex-wrap">
-          <div className="flex gap-3">
+      <div className="space-y-4 md:space-y-6">
+        {/* Header Section - Responsive */}
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 flex-wrap">
             <Button
-              className="bg-[#119D82] hover:bg-[#0e866f] text-white"
+              className="bg-[#119D82] hover:bg-[#0e866f] text-white text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10"
               onClick={() => setAddCategoryDialogOpen(true)}
             >
-              <Plus className="w-4 h-4 mr-2" /> Add Category
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> Add Category
             </Button>
 
             <Button
-              className="bg-[#119D82] hover:bg-[#0e866f] text-white"
+              className="bg-[#119D82] hover:bg-[#0e866f] text-white text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10"
               onClick={() => setAddSubCategoryDialogOpen(true)}
             >
-              <Plus className="w-4 h-4 mr-2" /> Add Sub-Category
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> Add Sub-Category
             </Button>
 
             <Button
-              className="bg-[#119D82] hover:bg-[#0e866f] text-white w-full sm:w-auto"
+              className="bg-[#119D82] hover:bg-[#0e866f] text-white text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10"
               onClick={() => {
                 setEditingProduct(null);
                 resetForm();
                 setShowForm(true);
               }}
             >
-              <Plus className="w-4 h-4 mr-2" /> Add Product
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> Add Product
             </Button>
           </div>
 
-          <div className="relative w-full sm:w-1/3">
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <Input
               placeholder="Search product..."
-              className="pl-10 w-full"
+              className="pl-10 w-full h-9 sm:h-10 text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Table Section */}
-        <div className="bg-white rounded-xl shadow overflow-x-auto">
-          <table className="w-full min-w-[600px]">
-            <thead className="bg-[#E8E8C6]">
-              <tr>
-                {[
-                  "Item Code",
-                  "Brand Name",
-                  "Category/Subcategory",
-                  "Thumbnail",
-                  "Name",
-                  "Quantity",
-                  "Price",
-                  "Stock",
-                  "Status",
-                  "Actions",
-                ].map((header) => (
-                  <th
-                    key={header}
-                    className="px-6 py-3 text-left text-sm font-semibold whitespace-nowrap"
-                  >
-                    {header}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {currentProducts.length > 0 ? (
-                currentProducts.map((product) => (
-                  <tr key={product._id} className="border-t hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm">
-                      {product.itemCode || "N/A"}
+        {/* Table Section - Mobile Card View / Desktop Table */}
+        <div className="bg-white rounded-xl shadow">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#E8E8C6]">
+                <tr>
+                  {[
+                    "Item Code",
+                    "Brand Name",
+                    "Category/Subcategory",
+                    "Thumbnail",
+                    "Name",
+                    "Quantity",
+                    "Price",
+                    "Stock",
+                    "Actions",
+                  ].map((header) => (
+                    <th
+                      key={header}
+                      className="px-4 xl:px-6 py-3 text-left text-xs xl:text-sm font-semibold whitespace-nowrap"
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {currentProducts.length > 0 ? (
+                  currentProducts.map((product) => (
+                    <tr key={product._id} className="border-t hover:bg-gray-50">
+                      <td className="px-4 xl:px-6 py-3 text-xs xl:text-sm whitespace-nowrap">
+                        {product.itemCode || "N/A"}
+                      </td>
+                      <td className="px-4 xl:px-6 py-3 text-xs xl:text-sm whitespace-nowrap">
+                        {product.brandName || "N/A"}
+                      </td>
+                      <td className="px-4 xl:px-6 py-3 text-xs xl:text-sm whitespace-nowrap">
+                        {product.category?.name || "N/A"}
+                      </td>
+                      <td className="px-4 xl:px-6 py-3 whitespace-nowrap">
+                        <div className="w-10 h-10 xl:w-12 xl:h-12 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.productName}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <ImageIcon className="w-5 h-5 xl:w-6 xl:h-6 text-gray-400" />
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 xl:px-6 py-3 text-xs xl:text-sm whitespace-nowrap">
+                        {product.productName || "N/A"}
+                      </td>
+                      <td className="px-4 xl:px-6 py-3 text-xs xl:text-sm whitespace-nowrap">{product.stock || 0}</td>
+                      <td className="px-4 xl:px-6 py-3 text-xs xl:text-sm whitespace-nowrap">₹{product.mrp || 0}</td>
+                      <td className="px-4 xl:px-6 py-3 text-xs xl:text-sm font-medium whitespace-nowrap">
+                        <span
+                          className={`${
+                            product.stock > 0 ? "text-green-600" : "text-red-600"
+                          }`}
+                        >
+                          {product.stock > 0 ? "In-stock" : "Out of stock"}
+                        </span>
+                      </td>
+                      <td className="px-4 xl:px-6 py-3 whitespace-nowrap">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEdit(product)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(product._id)}
+                              className="text-red-600"
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={9}
+                      className="px-6 py-8 text-center text-gray-500 text-sm"
+                    >
+                      No products found
                     </td>
-                    <td className="px-6 py-4 text-sm">
-                      {product.brandName || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {product.category?.name || "N/A"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden divide-y">
+            {currentProducts.length > 0 ? (
+              currentProducts.map((product) => (
+                <div key={product._id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex gap-3 flex-1 min-w-0">
+                      <div className="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden flex-shrink-0">
                         {product.image ? (
                           <img
                             src={product.image}
@@ -556,87 +591,87 @@ export default function ProductManagement() {
                           <ImageIcon className="w-6 h-6 text-gray-400" />
                         )}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {product.productName || "N/A"}
-                    </td>
-                    <td className="px-6 py-4 text-sm">{product.stock || 0}</td>
-                    <td className="px-6 py-4 text-sm">₹{product.mrp || 0}</td>
-                    <td className="px-6 py-4 text-sm font-medium">
-                      <span
-                        className={`${
-                          product.stock > 0 ? "text-green-600" : "text-red-600"
-                        }`}
-                      >
-                        {product.stock > 0 ? "In-stock" : "Out of stock"}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <Switch
-                        checked={product.productStatus === "active"}
-                        onCheckedChange={() => handleStatusToggle(product)}
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(product)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(product._id)}
-                            className="text-red-600"
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan={10}
-                    className="px-6 py-8 text-center text-gray-500"
-                  >
-                    No products found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-sm truncate">
+                          {product.productName || "N/A"}
+                        </h3>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {product.brandName || "N/A"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {product.category?.name || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEdit(product)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(product._id)}
+                          className="text-red-600"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-gray-500">Item Code:</span>
+                      <p className="font-medium">{product.itemCode || "N/A"}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Price:</span>
+                      <p className="font-medium">₹{product.mrp || 0}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Stock:</span>
+                      <p className={`font-medium ${product.stock > 0 ? "text-green-600" : "text-red-600"}`}>
+                        {product.stock || 0} ({product.stock > 0 ? "In-stock" : "Out of stock"})
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-gray-500 text-sm">
+                No products found
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination - Responsive */}
         {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
+          <div className="flex justify-center items-center gap-1 sm:gap-2 mt-4 flex-wrap">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="rounded-full"
+              className="rounded-full h-8 w-8 sm:h-9 sm:w-9 p-0 text-xs sm:text-sm"
             >
               ‹
             </Button>
             {Array.from({ length: totalPages }, (_, i) => i + 1)
               .slice(
-                Math.max(0, currentPage - 3),
-                Math.min(totalPages, currentPage + 2)
+                Math.max(0, currentPage - 2),
+                Math.min(totalPages, currentPage + 1)
               )
               .map((page) => (
                 <Button
                   key={page}
                   size="sm"
                   variant={page === currentPage ? "default" : "outline"}
-                  className={`rounded-full ${
+                  className={`rounded-full h-8 w-8 sm:h-9 sm:w-9 p-0 text-xs sm:text-sm ${
                     page === currentPage
                       ? "bg-[#119D82] text-white"
                       : "text-gray-700 hover:bg-[#119D82] hover:text-white"
@@ -653,19 +688,19 @@ export default function ProductManagement() {
                 setCurrentPage((prev) => Math.min(totalPages, prev + 1))
               }
               disabled={currentPage === totalPages}
-              className="rounded-full"
+              className="rounded-full h-8 w-8 sm:h-9 sm:w-9 p-0 text-xs sm:text-sm"
             >
               ›
             </Button>
           </div>
         )}
 
-        {/* Add/Edit Drawer */}
+        {/* Add/Edit Modal - Responsive */}
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
-                <h2 className="text-lg sm:text-xl font-semibold">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+              <div className="p-4 sm:p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
+                <h2 className="text-base sm:text-lg md:text-xl font-semibold">
                   {editingProduct ? "Edit Product" : "Add Product"}
                 </h2>
                 <Button
@@ -676,35 +711,36 @@ export default function ProductManagement() {
                     setEditingProduct(null);
                     resetForm();
                   }}
+                  className="h-8 w-8 p-0"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-4 sm:p-6 space-y-4">
                 {/* Product Image Upload */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-xs sm:text-sm font-medium mb-2">
                     Product Image
                   </label>
 
-                  <div className="border-2 border-dashed border-[#119D82] rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
+                  <div className="border-2 border-dashed border-[#119D82] rounded-lg p-4 sm:p-6 text-center hover:bg-gray-50 transition-colors">
                     <label
                       htmlFor="image-upload"
-                      className="cursor-pointer flex flex-col items-center justify-center space-y-3"
+                      className="cursor-pointer flex flex-col items-center justify-center space-y-2 sm:space-y-3"
                     >
                       {imagePreview ? (
                         <img
                           src={imagePreview}
                           alt="Product Preview"
-                          className="w-32 h-32 object-cover rounded-md mx-auto border border-gray-200"
+                          className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-md mx-auto border border-gray-200"
                         />
                       ) : (
                         <>
-                          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                            <ImageIcon className="w-6 h-6 text-gray-400" />
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                            <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-400" />
                           </div>
-                          <span className="text-[#119D82] font-medium">
+                          <span className="text-[#119D82] font-medium text-xs sm:text-sm">
                             Click to upload image
                           </span>
                           <p className="text-xs text-gray-500">
@@ -727,7 +763,7 @@ export default function ProductManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-red-500 hover:text-red-600"
+                          className="text-red-500 hover:text-red-600 text-xs sm:text-sm"
                           onClick={removeImage}
                         >
                           Remove
@@ -738,7 +774,7 @@ export default function ProductManagement() {
                 </div>
 
                 {/* Input Fields */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {[
                     { label: "Item Code", name: "itemCode", required: false },
                     { label: "Brand Name", name: "brandName", required: false },
@@ -784,7 +820,7 @@ export default function ProductManagement() {
                     { label: "Pack Size", name: "packSize", required: false },
                   ].map((field) => (
                     <div key={field.name}>
-                      <label className="block text-sm font-medium mb-1">
+                      <label className="block text-xs sm:text-sm font-medium mb-1">
                         {field.label}{" "}
                         {field.required && (
                           <span className="text-red-500">*</span>
@@ -795,7 +831,7 @@ export default function ProductManagement() {
                           onValueChange={handleCategoryChange}
                           value={formData.category}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                             <SelectValue placeholder="Select a category" />
                           </SelectTrigger>
                           <SelectContent>
@@ -813,10 +849,11 @@ export default function ProductManagement() {
                           value={formData[field.name]}
                           onChange={handleChange}
                           placeholder={`Enter ${field.label.toLowerCase()}`}
+                          className="h-9 sm:h-10 text-xs sm:text-sm"
                         />
                       )}
                       {errors[field.name] && (
-                        <span className="text-red-500 text-xs mt-1">
+                        <span className="text-red-500 text-xs mt-1 block">
                           {errors[field.name]}
                         </span>
                       )}
@@ -826,7 +863,7 @@ export default function ProductManagement() {
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium mb-1">
+                  <label className="block text-xs sm:text-sm font-medium mb-1">
                     Description
                   </label>
                   <Textarea
@@ -834,16 +871,16 @@ export default function ProductManagement() {
                     value={formData.description}
                     onChange={handleChange}
                     placeholder="Enter product description"
-                    className="min-h-[100px]"
+                    className="min-h-[80px] sm:min-h-[100px] text-xs sm:text-sm"
                   />
                 </div>
               </div>
 
               {/* Buttons */}
-              <div className="p-6 border-t flex flex-col sm:flex-row justify-end gap-3 sticky bottom-0 bg-white">
+              <div className="p-4 sm:p-6 border-t flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 sticky bottom-0 bg-white">
                 <Button
                   variant="outline"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto h-9 sm:h-10 text-xs sm:text-sm"
                   onClick={() => {
                     setShowForm(false);
                     setEditingProduct(null);
@@ -854,13 +891,13 @@ export default function ProductManagement() {
                   Cancel
                 </Button>
                 <Button
-                  className="bg-[#119D82] hover:bg-[#0e866f] text-white w-full sm:w-auto disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  className="bg-[#119D82] hover:bg-[#0e866f] text-white w-full sm:w-auto h-9 sm:h-10 text-xs sm:text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
                   onClick={handleSubmit}
                   disabled={loading}
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       <span>{editingProduct ? "Updating..." : "Adding..."}</span>
                     </div>
                   ) : (
@@ -872,18 +909,18 @@ export default function ProductManagement() {
           </div>
         )}
 
-        {/* Add Category Dialog */}
+        {/* Add Category Dialog - Responsive */}
         <Dialog
           open={addCategoryDialogOpen}
           onOpenChange={setAddCategoryDialogOpen}
         >
-          <DialogContent className="sm:max-w-[430px]">
+          <DialogContent className="w-[95vw] max-w-[430px] p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-center">Add Category</DialogTitle>
+              <DialogTitle className="text-center text-base sm:text-lg">Add Category</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-1">
+            <div className="grid gap-3 sm:gap-4 py-1">
               <div className="grid gap-2">
-                <label htmlFor="category-name" className="text-sm font-medium">
+                <label htmlFor="category-name" className="text-xs sm:text-sm font-medium">
                   Category Name
                 </label>
                 <Input
@@ -891,12 +928,13 @@ export default function ProductManagement() {
                   placeholder="Enter category name"
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 />
               </div>
               <div className="grid gap-2">
                 <label
                   htmlFor="category-description"
-                  className="text-sm font-medium"
+                  className="text-xs sm:text-sm font-medium"
                 >
                   Description
                 </label>
@@ -905,19 +943,20 @@ export default function ProductManagement() {
                   placeholder="Enter category description"
                   value={newCategoryDescription}
                   onChange={(e) => setNewCategoryDescription(e.target.value)}
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 />
               </div>
             </div>
-            <DialogFooter className="flex justify-between gap-12 px-7 pb-6">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 sm:gap-4 px-0 sm:px-7 pb-2 sm:pb-6">
               <Button
                 variant="outline"
-                className="border-red-500 text-red-500 hover:bg-red-50 rounded-full w-[137px]"
+                className="border-red-500 text-red-500 hover:bg-red-50 rounded-full w-full sm:w-[137px] h-9 sm:h-10 text-xs sm:text-sm"
                 onClick={() => setAddCategoryDialogOpen(false)}
               >
                 Cancel
               </Button>
               <Button
-                className="bg-[#119D82] hover:bg-[#0e866f] text-white rounded-full w-[137px]"
+                className="bg-[#119D82] hover:bg-[#0e866f] text-white rounded-full w-full sm:w-[137px] h-9 sm:h-10 text-xs sm:text-sm"
                 onClick={handleAddCategory}
               >
                 Save
@@ -926,24 +965,24 @@ export default function ProductManagement() {
           </DialogContent>
         </Dialog>
 
-        {/* Add Sub-Category Dialog */}
+        {/* Add Sub-Category Dialog - Responsive */}
         <Dialog
           open={addSubCategoryDialogOpen}
           onOpenChange={setAddSubCategoryDialogOpen}
         >
-          <DialogContent className="sm:max-w-[430px]">
+          <DialogContent className="w-[95vw] max-w-[430px] p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-center">
+              <DialogTitle className="text-center text-base sm:text-lg">
                 Add Sub-Category
               </DialogTitle>
             </DialogHeader>
-            <div className="grid gap-4 py-1">
+            <div className="grid gap-3 sm:gap-4 py-1">
               <div className="grid gap-2">
                 <Select
                   onValueChange={setSelectedParentCategory}
                   value={selectedParentCategory}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9 sm:h-10 text-xs sm:text-sm">
                     <SelectValue placeholder="Select Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -963,19 +1002,20 @@ export default function ProductManagement() {
                   placeholder="Enter Sub-Category Name"
                   value={newSubCategoryName}
                   onChange={(e) => setNewSubCategoryName(e.target.value)}
+                  className="h-9 sm:h-10 text-xs sm:text-sm"
                 />
               </div>
             </div>
-            <DialogFooter className="flex justify-between gap-12 px-7 pb-6">
+            <DialogFooter className="flex flex-col-reverse sm:flex-row justify-between gap-3 sm:gap-4 px-0 sm:px-7 pb-2 sm:pb-6">
               <Button
                 variant="outline"
-                className="border-red-500 text-red-500 hover:bg-red-50 rounded-full w-[137px]"
+                className="border-red-500 text-red-500 hover:bg-red-50 rounded-full w-full sm:w-[137px] h-9 sm:h-10 text-xs sm:text-sm"
                 onClick={() => setAddSubCategoryDialogOpen(false)}
               >
                 Cancel
               </Button>
               <Button
-                className="bg-[#119D82] hover:bg-[#0e866f] text-white rounded-full w-[137px]"
+                className="bg-[#119D82] hover:bg-[#0e866f] text-white rounded-full w-full sm:w-[137px] h-9 sm:h-10 text-xs sm:text-sm"
                 onClick={handleAddSubCategory}
               >
                 Save

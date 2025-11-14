@@ -17,19 +17,48 @@ export default function TwoFactorAuth() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow digits and limit to 10 characters
+    if (/^\d{0,10}$/.test(value)) {
+      setMobileNumber(value);
+      setErrorMsg("");
+    }
+  };
+
   const handleMobileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mobileNumber) return;
+    if (!mobileNumber) {
+      setErrorMsg("Please enter a mobile number");
+      return;
+    }
+    if (mobileNumber.length !== 10) {
+      setErrorMsg("Mobile number must be exactly 10 digits");
+      return;
+    }
+
+    setErrorMsg("");
+    
+    // Show alert for OTP sent
+    alert("OTP sent successfully!");
+    
+    // Move to OTP step
     setStep("otp");
   };
 
-  const handleOtpSubmit = async (e) => {
+  const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (otp.length !== 4) {
+      setErrorMsg("Please enter complete 4-digit OTP");
+      return;
+    }
+
     setLoading(true);
     setErrorMsg("");
 
     try {
-      const res = await axios.post(
+      const response = await axios.post(
         "http://13.61.23.154:5000/api/auth/otp/verify",
         {
           phoneNumber: mobileNumber,
@@ -37,40 +66,33 @@ export default function TwoFactorAuth() {
         }
       );
 
-      console.log("OTP verify full response:", res); // Full response object
-      console.log("Response data:", res.data); // The `data` property from axios response
+      console.log("Verify OTP Response:", response.data);
 
-      // The backend response has the token at res.data.data.token
-      let token = res.data?.data?.token;
+      // Check response structure according to your API
+      if (response.data?.status === true && response.data?.data?.token) {
+        const token = response.data.data.token;
+        const user = response.data.data.user;
 
-      if (Array.isArray(token)) {
-        token = token[0]; // use first token
-      } else if (typeof token === "string" && token.includes(",")) {
-        token = token.split(",")[0]; // pick first valid JWT
-      }
+        // Store token in localStorage
+        localStorage.setItem("token", token);
+        
+        // Optional: Store user info
+        localStorage.setItem("user", JSON.stringify(user));
 
-      // ✅ Store only clean JWT
-      if (res.status === 200 && token) {
-        localStorage.setItem("token", token.trim());
-        console.log(
-          "✅ Token saved to localStorage:",
-          localStorage.getItem("token")
-        );
-
-        // Verify it's stored correctly
-        const savedToken = localStorage.getItem("token");
-        console.log("Stored token:", savedToken);
-
-        // Add a short delay to ensure any interceptors can pick up the new token
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 300);
+        console.log("✅ Token saved:", token);
+        console.log("✅ User info:", user);
+        
+        // Show alert for OTP verified
+        alert("OTP verified successfully!");
+        
+        // Navigate to dashboard
+        navigate("/dashboard");
       } else {
-        setErrorMsg("Invalid OTP or token missing in response");
+        setErrorMsg(response.data?.message || "Invalid OTP");
       }
-    } catch (err: any) {
-      console.error("OTP Verify Error:", err.response?.data || err);
-      setErrorMsg(err.response?.data?.message || "OTP verification failed");
+    } catch (error: any) {
+      console.error("OTP Verify Error:", error.response?.data || error);
+      setErrorMsg(error.response?.data?.message || "OTP verification failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -103,12 +125,25 @@ export default function TwoFactorAuth() {
                   id="mobile"
                   type="tel"
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value)}
+                  onChange={handleMobileChange}
                   className="h-12 border-green-300 focus-visible:ring-[#0B8A74]"
-                  placeholder="Enter mobile number"
+                  placeholder="Enter 10 digit mobile number"
+                  maxLength={10}
+                  inputMode="numeric"
+                  pattern="\d{10}"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  {mobileNumber.length}/10 digits
+                </p>
               </div>
+              {errorMsg && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-600 text-sm text-center">
+                    {errorMsg}
+                  </p>
+                </div>
+              )}
               <Button
                 type="submit"
                 className="w-full h-12 bg-[#0B8A74] hover:bg-[#087060] text-white font-medium text-base rounded-full"
@@ -121,20 +156,29 @@ export default function TwoFactorAuth() {
               <div className="space-y-4">
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground mb-2">
-                    Didn’t receive the OTP SMS?
+                    Didn't receive the OTP SMS?
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    Send OTP again in 02.56 sec
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setStep("mobile")}
+                    className="text-xs text-[#0B8A74] hover:underline"
+                  >
+                    Change mobile number
+                  </button>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-center text-muted-foreground">
                     Enter the verification code we have sent to
                     <br />
-                    +91 {mobileNumber || "9876543210"}
+                    <span className="font-medium text-foreground">+91 {mobileNumber}</span>
                   </p>
                   <div className="flex justify-center">
-                    <InputOTP maxLength={4} value={otp} onChange={setOtp}>
+                    <InputOTP 
+                      maxLength={4} 
+                      value={otp} 
+                      onChange={setOtp}
+                      disabled={loading}
+                    >
                       <InputOTPGroup>
                         {[...Array(4)].map((_, i) => (
                           <InputOTPSlot
@@ -149,12 +193,16 @@ export default function TwoFactorAuth() {
                 </div>
               </div>
               {errorMsg && (
-                <p className="text-red-500 text-sm text-center">{errorMsg}</p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-600 text-sm text-center">
+                    {errorMsg}
+                  </p>
+                </div>
               )}
               <Button
                 type="submit"
-                disabled={loading}
-                className="w-full h-12 bg-[#0B8A74] hover:bg-[#087060] text-white font-medium text-base rounded-full"
+                disabled={loading || otp.length !== 4}
+                className="w-full h-12 bg-[#0B8A74] hover:bg-[#087060] text-white font-medium text-base rounded-full disabled:opacity-50"
               >
                 {loading ? "Verifying..." : "Verify"}
               </Button>

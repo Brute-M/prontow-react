@@ -17,6 +17,7 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
   const [userName, setUserName] = useState<string>("");
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     const storedName = localStorage.getItem("userName");
@@ -25,6 +26,16 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
     } else {
       setUserName("Admin");
     }
+
+    // Check if mobile on mount
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const getInitials = (name: string) => {
@@ -34,48 +45,55 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={!isMobile}>
       <div className="flex min-h-screen w-full bg-background">
         <div className="bg-[#0A4338] text-white">
-          <AppSidebar/>
+          <AppSidebar />
         </div>
 
         <main className="flex-1 overflow-auto">
-          <header className="sticky top-0 z-10 border-b border-border bg-white px-8 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger>
-                <Menu className="w-5 h-5 text-[#0A4338]" />
+          <header className="sticky top-0 z-10 border-b border-border bg-white px-3 sm:px-4 md:px-6 lg:px-8 py-3 md:py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-1 min-w-0">
+              <SidebarTrigger className="flex-shrink-0">
+                <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-[#0A4338]" />
               </SidebarTrigger>
-              <h1 className="text-2xl font-bold text-[#0A4338]">{title}</h1>
+              <h1 className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold text-[#0A4338] truncate">
+                {title}
+              </h1>
             </div>
 
             {/* notification */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4 flex-shrink-0">
               <div className="relative cursor-pointer">
-                <Bell className="w-5 h-5 text-[#0A4338]" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full" />
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-[#0A4338]" />
+                <span className="absolute -top-0.5 -right-0.5 sm:top-0 sm:right-0 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-blue-500 rounded-full" />
               </div>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="p-1 hover:bg-muted rounded-full transition">
-                    <Avatar>
-                      <AvatarFallback>{getInitials(userName)}</AvatarFallback>
+                    <Avatar className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10">
+                      <AvatarFallback className="text-xs sm:text-sm">
+                        {getInitials(userName)}
+                      </AvatarFallback>
                     </Avatar>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-white">
+                <DropdownMenuContent align="end" className="bg-white w-40 sm:w-48">
                   <DropdownMenuItem asChild>
-                    <a href="/profile">Profile</a>
+                    <a href="/profile" className="text-xs sm:text-sm">Profile</a>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href="/settings">Settings</a>
+                    <a href="/settings" className="text-xs sm:text-sm">Settings</a>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={() => {
                       localStorage.removeItem("userName");
+                      localStorage.removeItem("token");
+                      localStorage.removeItem("tempToken");
                       window.location.href = "/login";
                     }}
+                    className="text-xs sm:text-sm"
                   >
                     Logout
                   </DropdownMenuItem>
@@ -84,7 +102,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
             </div>
           </header>
 
-          <div className="p-8">{children}</div>
+          <div className="p-3 sm:p-4 md:p-6 lg:p-8">{children}</div>
         </main>
       </div>
     </SidebarProvider>
