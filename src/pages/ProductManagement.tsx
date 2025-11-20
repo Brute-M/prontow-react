@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,41 @@ import {
   getAllCategories,
 } from "@/adminApi/categoryApi";
 import axios from "axios";
+
+const containerVariants = {
+  hidden: { opacity: 1 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
+const modalBackdropVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+  exit: { opacity: 0 },
+};
+
+const modalContentVariants = {
+  hidden: { scale: 0.95, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: { duration: 0.3, ease: "easeOut" },
+  },
+  exit: { scale: 0.95, opacity: 0, transition: { duration: 0.2, ease: "easeIn" } },
+};
 
 export default function ProductManagement() {
   const navigate = useNavigate();
@@ -429,9 +465,15 @@ const filteredProducts = Array.isArray(products)
 
   return (
     <AdminLayout title="Product Management">
-      <div className="space-y-4 md:space-y-6">
+      <motion.div
+        className="space-y-4 md:space-y-6"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Header Section - Responsive */}
-        <div className="flex flex-col gap-3 sm:gap-4">
+        <motion.div // @ts-ignore 
+        variants={itemVariants} className="flex flex-col gap-3 sm:gap-4">
           <div className="flex flex-col xs:flex-row gap-2 xs:gap-3 flex-wrap">
             <Button
               className="bg-[#119D82] hover:bg-[#0e866f] text-white text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10"
@@ -468,10 +510,12 @@ const filteredProducts = Array.isArray(products)
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Table Section - Mobile Card View / Desktop Table */}
-        <div className="bg-white rounded-xl shadow">
+        <motion.div 
+        // @ts-ignore
+        variants={itemVariants} className="bg-white rounded-xl shadow">
           {/* Desktop Table View */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
@@ -647,10 +691,12 @@ const filteredProducts = Array.isArray(products)
               </div>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Pagination - Responsive */}
-        {totalPages > 1 && (
+        {totalPages > 1 && (<motion.div 
+        // @ts-ignore
+        variants={itemVariants}>
           <div className="flex justify-center items-center gap-1 sm:gap-2 mt-4 flex-wrap">
             <Button
               variant="outline"
@@ -692,13 +738,24 @@ const filteredProducts = Array.isArray(products)
             >
               ›
             </Button>
-          </div>
+          </div></motion.div>
         )}
 
         {/* Add/Edit Modal - Responsive */}
-        {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <AnimatePresence>
+          {showForm && (
+            <motion.div
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
+              variants={modalBackdropVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <motion.div
+                className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
+                // @ts-ignore
+                variants={modalContentVariants}
+              >
               <div className="p-4 sm:p-6 border-b flex justify-between items-center sticky top-0 bg-white z-10">
                 <h2 className="text-base sm:text-lg md:text-xl font-semibold">
                   {editingProduct ? "Edit Product" : "Add Product"}
@@ -905,9 +962,10 @@ const filteredProducts = Array.isArray(products)
                   )}
                 </Button>
               </div>
-            </div>
-          </div>
-        )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Add Category Dialog - Responsive */}
         <Dialog
@@ -1023,7 +1081,7 @@ const filteredProducts = Array.isArray(products)
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
+      </motion.div>
     </AdminLayout>
   );
 }

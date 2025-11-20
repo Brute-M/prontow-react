@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MoreVertical, Image as ImageIcon, X, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -31,6 +31,7 @@ import { getAllProducts, updateProduct, deleteProduct } from "@/adminApi/product
 import { getAllCategories } from "@/adminApi/categoryApi";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function InventoryTracking() {
   const navigate = useNavigate();
@@ -107,7 +108,7 @@ export default function InventoryTracking() {
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
   };
@@ -180,7 +181,7 @@ export default function InventoryTracking() {
       setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        setImagePreview(reader.result);
       };
       reader.readAsDataURL(file);
     }
@@ -188,8 +189,8 @@ export default function InventoryTracking() {
 
   const removeImage = () => {
     setImageFile(null);
-    setImagePreview(null);
-    setFormData((prev) => ({ ...prev, image: "" }));
+    setImagePreview(editingProduct?.image || null);
+    setFormData((prev) => ({ ...prev, image: editingProduct?.image || "" }));
   };
 
   const handleSubmit = async () => {
@@ -200,27 +201,34 @@ export default function InventoryTracking() {
     }
     setFormLoading(true);
     try {
-      let imageData = formData.image || "";
-      if (imageFile) {
-        // In a real app, you would upload the imageFile to a server/CDN
-        // and get back a URL. For now, we'll use the preview URL.
-        imageData = imagePreview;
-      }
-
       const payload = {
-        ...formData,
-        mrp: parseFloat(formData.mrp),
-        costPrice: parseFloat(formData.costPrice),
-        stock: parseInt(formData.stock),
-        gst: parseFloat(formData.gst),
-        image: imageData,
+        brandName: formData.brandName,
+        productName: formData.productName,
+        category: formData.category,
+        company: formData.company,
+        mrp: parseFloat(formData.mrp) || 0,
+        costPrice: parseFloat(formData.costPrice) || 0,
+        stock: parseInt(formData.stock) || 0,
+        itemCode: formData.itemCode,
+        gst: parseFloat(formData.gst) || 0,
+        hsnCode: formData.hsnCode,
+        size: formData.size,
+        discount: formData.discount,
+        packSize: formData.packSize,
+        description: formData.description,
       };
+
+      if (imageFile) {
+        toast.info("Image upload not implemented yet. Other fields will be updated.");
+      } else if (formData.image && !imageFile) {
+        //@ts-ignore
+        payload.image = formData.image;
+      }
 
       if (editingProduct) {
         await updateProduct({ id: editingProduct._id, data: payload });
         toast.success("Product updated successfully!");
       }
-      // This component doesn't support adding new products, only editing.
 
       setShowForm(false);
       resetForm();
@@ -249,7 +257,12 @@ export default function InventoryTracking() {
 
   return (
     <AdminLayout title="Inventory Tracking">
-      <div className="flex flex-col xl:flex-row gap-4 md:gap-6 w-full">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col xl:flex-row gap-4 md:gap-6 w-full"
+      >
         <div className="flex-1 space-y-4 md:space-y-6 min-w-0">
           {/* 🔍 Search Bar */}
           <div className="flex flex-wrap justify-between items-center gap-3 md:gap-4">
@@ -282,60 +295,60 @@ export default function InventoryTracking() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {currentProducts.length > 0 ? (
-                    currentProducts.map((product) => (
-                      <tr key={product._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3">{product.itemCode || 'N/A'}</td>
-                        <td className="px-4 py-3">{product.brandName || 'N/A'}</td>
-                        <td className="px-4 py-3">{product.category?.name || 'N/A'}</td>
-                        <td className="px-4 py-3">
-                          <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
-                            {product.image ?
-                              <img src={product.image} alt={product.productName} className="object-cover w-full h-full" />
-                             :
-                              <ImageIcon className="w-5 h-5 text-gray-400" />
-                            }
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 max-w-[200px] truncate">{product.productName || 'N/A'}</td>
-                        <td className="px-4 py-3">{product.stock || 0}</td>
-                        <td className="px-4 py-3">Rs. {product.mrp || 0}</td>
-                        <td
-                          className={`px-4 py-3 font-semibold ${
-                            getStockColor(product.stock)
-                          }`}
+                  <AnimatePresence>
+                    {currentProducts.length > 0 ? (
+                      currentProducts.map((product, index) => (
+                        <motion.tr
+                          key={product._id}
+                          layout
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className="hover:bg-gray-50 transition-colors"
                         >
-                          {product.stock}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="p-1 hover:bg-gray-100 rounded">
-                                <MoreVertical className="w-4 h-4 text-gray-500" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-white shadow-md">
-                              <DropdownMenuItem onClick={() => handleEdit(product)}>
-                                Edit Product
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleView(product)}>
-                                View Detail
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDelete(product._id)} className="text-red-600">
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
+                          <td className="px-4 py-3">{product.itemCode || 'N/A'}</td>
+                          <td className="px-4 py-3">{product.brandName || 'N/A'}</td>
+                          <td className="px-4 py-3">{product.category?.name || 'N/A'}</td>
+                          <td className="px-4 py-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                              {product.image ?
+                                <img src={product.image} alt={product.productName} className="object-cover w-full h-full" />
+                               :
+                                <ImageIcon className="w-5 h-5 text-gray-400" />
+                              }
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 max-w-[200px] truncate">{product.productName || 'N/A'}</td>
+                          <td className="px-4 py-3">{product.stock || 0}</td>
+                          <td className="px-4 py-3">Rs. {product.mrp || 0}</td>
+                          <td className={`px-4 py-3 font-semibold ${getStockColor(product.stock)}`}>
+                            {product.stock}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="p-1 hover:bg-gray-100 rounded">
+                                  <MoreVertical className="w-4 h-4 text-gray-500" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-white shadow-md">
+                                <DropdownMenuItem onClick={() => handleEdit(product)}>Edit Product</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleView(product)}>View Detail</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDelete(product._id)} className="text-red-600">Delete</DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </td>
+                        </motion.tr>
+                      ))
+                    ) : (
                     <tr>
                       <td colSpan={9} className="px-4 py-6 text-center text-gray-500">
                         No products found
                       </td>
                     </tr>
                   )}
+                  </AnimatePresence>
                 </tbody>
               </table>
             </div>
@@ -384,73 +397,60 @@ export default function InventoryTracking() {
 
           {/* 📱 Mobile Card View */}
           <div className="lg:hidden space-y-3">
-            {currentProducts.length > 0 ? (
-              currentProducts.map((product) => (
-                <div
-                  key={product._id}
-                  className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-2"
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-3">
-                      <div className="w-14 h-14 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {product.image ?
-                          <img src={product.image} alt={product.productName} className="object-cover w-full h-full" />
-                         :
-                          <ImageIcon className="w-6 h-6 text-gray-400" />
-                        }
+            <AnimatePresence>
+              {currentProducts.length > 0 ? (
+                currentProducts.map((product, index) => (
+                  <motion.div
+                    key={product._id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-2"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex gap-3">
+                        <div className="w-14 h-14 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {product.image ?
+                            <img src={product.image} alt={product.productName} className="object-cover w-full h-full" />
+                           :
+                            <ImageIcon className="w-6 h-6 text-gray-400" />
+                          }
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-sm">{product.productName || 'N/A'}</h3>
+                          <p className="text-xs text-gray-500">
+                            {product.brandName || 'N/A'} • {product.category?.name || 'N/A'}
+                          </p>
+                          <p className="text-xs text-gray-400">{product.itemCode || 'N/A'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-medium text-sm">{product.productName || 'N/A'}</h3>
-                        <p className="text-xs text-gray-500">
-                          {product.brandName || 'N/A'} • {product.category?.name || 'N/A'}
-                        </p>
-                        <p className="text-xs text-gray-400">{product.itemCode || 'N/A'}</p>
-                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1 hover:bg-gray-100 rounded">
+                            <MoreVertical className="w-4 h-4 text-gray-500" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleEdit(product)}>Edit Product</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleView(product)}>View Detail</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleDelete(product._id)} className="text-red-600">Delete</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button className="p-1 hover:bg-gray-100 rounded">
-                          <MoreVertical className="w-4 h-4 text-gray-500" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(product)}>
-                          Edit Product
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleView(product)}>
-                          View Detail
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(product._id)} className="text-red-600">
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <p>
-                      <span className="text-gray-500">Qty: </span>
-                      {product.stock || 0}
-                    </p>
-                    <p>
-                      <span className="text-gray-500">Price: </span>
-                      Rs. {product.mrp || 0}
-                    </p>
-                    <p>
-                      <span className="text-gray-500">Stock: </span>
-                      <span
-                        className={getStockColor(product.stock)}
-                      >
-                        {product.stock}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              ))
-            ) : (
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-gray-100 mt-2">
+                      <p><span className="text-gray-500">Qty: </span>{product.stock || 0}</p>
+                      <p><span className="text-gray-500">Price: </span>Rs. {product.mrp || 0}</p>
+                      <p><span className="text-gray-500">Stock: </span><span className={getStockColor(product.stock)}>{product.stock}</span></p>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
               <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
                 No products found
               </div>
-            )}
+            )}</AnimatePresence>
           </div>
         </div>
 
@@ -487,7 +487,7 @@ export default function InventoryTracking() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* View Details Dialog */}
       <Dialog open={!!viewingProduct} onOpenChange={() => setViewingProduct(null)}>
@@ -530,16 +530,26 @@ export default function InventoryTracking() {
       </Dialog>
 
       {/* Add/Edit Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.95 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
+            >
             <div className="p-6 border-b flex justify-between items-center">
               <h2 className="text-xl font-semibold">
                 {editingProduct ? "Edit Product" : "Add Product"}
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); resetForm(); }} className="h-8 w-8 p-0">
-                <X className="w-5 h-5" />
-              </Button>
+              <button onClick={() => { setShowForm(false); resetForm(); }} className={buttonVariants({ variant: "ghost", size: "sm" }) + " h-8 w-8 p-0"}><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-4 overflow-y-auto">
               <div className="space-y-2">
@@ -631,9 +641,10 @@ export default function InventoryTracking() {
                 {formLoading ? "Saving..." : "Save Changes"}
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AdminLayout>
   );
 }

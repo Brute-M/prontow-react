@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { AdminLayout } from "@/components/AdminLayout";
 import { ChevronRight } from "lucide-react";
 
@@ -14,22 +15,30 @@ export default function Settings() {
 
   return (
     <AdminLayout title="Settings">
-      <div className="flex flex-col items-start w-full px-8 mt-6">
-        <div className="w-[70%] max-w-2xl space-y-4">
-          {settingsOptions.map((option) => (
-            <button
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeInOut" }}
+        className="flex flex-col items-start w-full px-8 mt-6"
+      >
+        <div className="w-full max-w-2xl space-y-4 md:w-[70%]">
+          {settingsOptions.map((option, index) => (
+            <motion.button
               key={option.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
               onClick={() => navigate(option.path)}
-              className="w-full bg-white border border-gray-300 rounded-md flex items-center justify-between px-5 py-4 shadow-sm hover:bg-gray-50 transition-all"
+              className="flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-5 py-4 shadow-sm transition-all hover:bg-gray-50"
             >
-              <span className="text-gray-800 font-medium text-base">
+              <span className="text-base font-medium text-gray-800">
                 {option.label}
               </span>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
+              <ChevronRight className="h-5 w-5 text-gray-400" />
+            </motion.button>
           ))}
         </div>
-      </div>
+      </motion.div>
     </AdminLayout>
   );
 }

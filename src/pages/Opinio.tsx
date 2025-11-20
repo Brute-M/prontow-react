@@ -19,55 +19,55 @@ function Opinio() {
       time: "21-Oct-25",
     },
     {
-      id: "U-1001",
+      id: "U-1002",
       name: "Raj Sharma",
       match: "India vs AUS",
       question: "Who will win today?",
       option: "India",
       result: "Correct",
-      time: "21-Oct-25",
+      time: "22-Oct-25",
     },
     {
-      id: "U-1001",
+      id: "U-1003",
       name: "Raj Sharma",
       match: "India vs AUS",
       question: "Who will win today?",
       option: "India",
-      result: "Correct",
-      time: "21-Oct-25",
+      result: "Incorrect",
+      time: "25-Nov-25",
     },
     {
-      id: "U-1001",
+      id: "U-1004",
       name: "Raj Sharma",
       match: "India vs AUS",
       question: "Who will win today?",
       option: "India",
-      result: "Correct",
-      time: "21-Oct-25",
+      result: "Incorrect",
+      time: "26-Nov-25",
     },
     {
-      id: "U-1001",
+      id: "U-1005",
       name: "Raj Sharma",
       match: "India vs AUS",
       question: "Who will win today?",
       option: "India",
       result: "Correct",
-      time: "21-Oct-25",
+      time: "22-Nov-25",
     },
     {
-      id: "U-1001",
+      id: "U-1006",
       name: "Raj Sharma",
       match: "India vs AUS",
       question: "Who will win today?",
       option: "India",
       result: "Correct",
-      time: "21-Oct-25",
+      time: "24-Nov-25",
     },
   ];
 
   return (
     <AdminLayout title="Games > Opinio">
-      <div className="p-6 space-y-8">
+      <div className="p-3 sm:p-6 space-y-6 sm:space-y-8">
         <div className="flex justify-end items-center">
           <button className="text-[#119D82] text-sm font-semibold hover:underline">
             View All
@@ -75,7 +75,7 @@ function Opinio() {
         </div>
 
         {/* Match Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
           {matches.map((match, i) => (
             <div
               key={i}
@@ -104,29 +104,30 @@ function Opinio() {
           ))}
         </div>
 
-        {/* User Spin Record */}
-        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
-          <div className="flex justify-between items-center mb-5">
-            <h3 className="text-lg font-semibold text-[#1D1D1D]">
-              User Spin Record
+        {/* User Opinio Record */}
+        <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5 border border-gray-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-5 gap-3">
+            <h3 className="text-base sm:text-lg font-semibold text-[#1D1D1D]">
+              User Opinio Record
             </h3>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="bg-[#E8E8C6] text-[#1D1D1D] hover:bg-[#119D82] text-sm flex items-center gap-2 border-none shadow-sm"
+                className="bg-[#E8E8C6] text-[#1D1D1D] hover:bg-[#119D82] text-xs sm:text-sm flex items-center justify-center gap-2 border-none shadow-sm w-full sm:w-auto"
               >
-                Filter by Wheel <ChevronDown className="w-4 h-4" />
+                Filter by Opinio <ChevronDown className="w-4 h-4" />
               </Button>
               <Button
                 variant="outline"
-                className="bg-[#E8E8C6] text-[#1D1D1D] hover:bg-[#119D82] text-sm flex items-center gap-2 border-none shadow-sm"
+                className="bg-[#E8E8C6] text-[#1D1D1D] hover:bg-[#119D82] text-xs sm:text-sm flex items-center justify-center gap-2 border-none shadow-sm w-full sm:w-auto"
               >
                 Date Range <ChevronDown className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-gray-200">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200">
             <table className="w-full text-sm text-left">
               <thead className="bg-[#E8F7E8] text-[#1D1D1D]">
                 <tr className="bg-[#E8E8C6] text-gray-700 text-left">
@@ -156,6 +157,48 @@ function Opinio() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {records.map((r, i) => (
+              <div
+                key={i}
+                className="bg-[#F9F9F9] border border-gray-200 rounded-lg p-4 space-y-2 text-sm"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-xs text-gray-500">User ID</p>
+                    <p className="font-semibold text-[#1D1D1D]">{r.id}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">Result</p>
+                    <p className="font-semibold text-green-600">{r.result}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Name</p>
+                  <p className="text-[#1D1D1D]">{r.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Match</p>
+                  <p className="text-[#1D1D1D]">{r.match}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Question</p>
+                  <p className="text-[#1D1D1D]">{r.question}</p>
+                </div>
+                <div className="flex justify-between items-end pt-2 border-t border-gray-300">
+                  <div>
+                    <p className="text-xs text-gray-500">Selected</p>
+                    <p className="text-[#1D1D1D] font-medium">{r.option}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">{r.time}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

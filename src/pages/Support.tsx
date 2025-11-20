@@ -1,5 +1,6 @@
 import { AdminLayout } from '@/components/AdminLayout';
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
@@ -24,13 +25,16 @@ const tickets: Ticket[] = [
 
 function Support() {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
+
+  // ⭐ New states for controlled search
+  const [searchTerm, setSearchTerm] = useState(''); // typing
+  const [searchQuery, setSearchQuery] = useState(''); // actual filter (only on button click)
 
   const totalComplaints = tickets.length;
   const resolvedComplaints = tickets.filter((t) => t.status === 'Resolved').length;
   const pendingComplaints = tickets.filter((t) => t.status === 'Pending').length;
 
-  // 🔍 Filter tickets based on search input
+  // 🔍 Filter only when searchQuery updates (after clicking search icon)
   const filteredTickets = tickets.filter(
     (ticket) =>
       ticket.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -40,10 +44,16 @@ function Support() {
 
   return (
     <AdminLayout title="Supports">
-      <div className="space-y-6">
-        {/* Stats + Search Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeInOut" }}
+        className="space-y-6"
+      >
+        {/* Stats + Search */}
         <div className="flex flex-col lg:flex-row flex-wrap gap-4 items-stretch">
-          {/* Statistics Cards */}
+          
+          {/* Stats */}
           <div className="flex flex-wrap gap-4 flex-1">
             <div className="bg-[#1BA9D8] text-white rounded-2xl px-6 py-5 flex-1 min-w-[160px]">
               <div className="text-3xl md:text-4xl font-bold mb-1 text-center">{totalComplaints}</div>
@@ -63,68 +73,73 @@ function Support() {
 
           {/* Search Bar */}
           <div className="flex items-center justify-between sm:justify-center gap-3 w-full lg:w-auto mt-2 lg:mt-0">
+            
+            {/* Input (typing only updates searchTerm) */}
             <Input
               type="text"
               placeholder="Search by Ticket ID, Customer, or Issue"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-[45px] md:h-[50px] w-full sm:w-[275px] rounded-full text-base border border-gray-300 focus:ring-0 focus:outline-none bg-[#DBE9FF]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-[45px] md:h-[50px] w-full sm:w-[275px] rounded-full text-base border border-gray-300 bg-[#DBE9FF]"
             />
 
+            {/* Search button triggers actual search */}
             <Button
               size="icon"
-              className="h-[45px] md:h-[50px] w-[45px] md:w-[50px] rounded-full bg-[#1BA9D8] hover:bg-[#1693BB] flex items-center justify-center"
+              onClick={() => setSearchQuery(searchTerm)} // ⭐ Only filter when clicked
+              className="h-[45px] md:h-[50px] w-[45px] md:w-[50px] rounded-full bg-[#1BA9D8] hover:bg-[#1693BB]"
             >
               <Search className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </Button>
 
             <Button
               size="icon"
-              className="h-[45px] md:h-[50px] w-[45px] md:w-[50px] rounded-full bg-[#1BA9D8] hover:bg-[#1693BB] flex items-center justify-center"
+              className="h-[45px] md:h-[50px] w-[45px] md:w-[50px] rounded-full bg-[#1BA9D8] hover:bg-[#1693BB]"
             >
               <SlidersHorizontal className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </Button>
           </div>
         </div>
 
-        {/* Table Section */}
+        {/* Table */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-4 md:px-6 py-3 text-left font-semibold text-gray-900 whitespace-nowrap">Ticket ID</th>
-                  <th className="px-4 md:px-6 py-3 text-left font-semibold text-gray-900 whitespace-nowrap">Customer Name</th>
-                  <th className="px-4 md:px-6 py-3 text-left font-semibold text-gray-900 whitespace-nowrap">Submission Date</th>
-                  <th className="px-4 md:px-6 py-3 text-left font-semibold text-gray-900 whitespace-nowrap">Issue Type</th>
-                  <th className="px-4 md:px-6 py-3 text-left font-semibold text-gray-900 whitespace-nowrap">Priority Level</th>
-                  <th className="px-4 md:px-6 py-3 text-left font-semibold text-gray-900 whitespace-nowrap">Status</th>
+                  <th className="px-4 md:px-6 py-3 text-left font-semibold">Ticket ID</th>
+                  <th className="px-4 md:px-6 py-3 text-left font-semibold">Customer Name</th>
+                  <th className="px-4 md:px-6 py-3 text-left font-semibold">Submission Date</th>
+                  <th className="px-4 md:px-6 py-3 text-left font-semibold">Issue Type</th>
+                  <th className="px-4 md:px-6 py-3 text-left font-semibold">Priority Level</th>
+                  <th className="px-4 md:px-6 py-3 text-left font-semibold">Status</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredTickets.length > 0 ? (
                   filteredTickets.map((ticket, index) => (
                     <tr
                       key={index}
                       onClick={() => navigate(`/support/support-details`)}
-                      className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors cursor-pointer"
+                      className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                     >
-                      <td className="px-4 md:px-6 py-4 text-gray-900 font-medium whitespace-nowrap">{ticket.id}</td>
-                      <td className="px-4 md:px-6 py-4 text-gray-900 whitespace-nowrap">{ticket.customerName}</td>
-                      <td className="px-4 md:px-6 py-4 text-gray-700 whitespace-nowrap">{ticket.submissionDate}</td>
-                      <td className="px-4 md:px-6 py-4 text-gray-900 font-medium whitespace-nowrap">{ticket.issueType}</td>
-                      <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-4 font-medium">{ticket.id}</td>
+                      <td className="px-4 md:px-6 py-4">{ticket.customerName}</td>
+                      <td className="px-4 md:px-6 py-4 text-gray-600">{ticket.submissionDate}</td>
+                      <td className="px-4 md:px-6 py-4 font-medium">{ticket.issueType}</td>
+                      <td className="px-4 md:px-6 py-4">
                         <span
-                          className={`text-sm font-semibold ${
+                          className={`font-semibold ${
                             ticket.priorityLevel === 'High Priority' ? 'text-red-600' : 'text-orange-500'
                           }`}
                         >
                           {ticket.priorityLevel}
                         </span>
                       </td>
-                      <td className="px-4 md:px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 md:px-6 py-4">
                         <span
-                          className={`text-sm font-semibold ${
+                          className={`font-semibold ${
                             ticket.status === 'Resolved' ? 'text-green-600' : 'text-blue-500'
                           }`}
                         >
@@ -144,7 +159,7 @@ function Support() {
             </table>
           </div>
         </div>
-      </div>
+      </motion.div>
     </AdminLayout>
   );
 }

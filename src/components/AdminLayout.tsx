@@ -81,7 +81,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-white w-40 sm:w-48">
                   <DropdownMenuItem asChild>
-                    <a href="/profile" className="text-xs sm:text-sm">Profile</a>
+                    <a href="/settings/general" className="text-xs sm:text-sm">Profile</a>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <a href="/settings" className="text-xs sm:text-sm">Settings</a>
