@@ -26,15 +26,13 @@ const tickets: Ticket[] = [
 function Support() {
   const navigate = useNavigate();
 
-  // ⭐ New states for controlled search
-  const [searchTerm, setSearchTerm] = useState(''); // typing
-  const [searchQuery, setSearchQuery] = useState(''); // actual filter (only on button click)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const totalComplaints = tickets.length;
   const resolvedComplaints = tickets.filter((t) => t.status === 'Resolved').length;
   const pendingComplaints = tickets.filter((t) => t.status === 'Pending').length;
 
-  // 🔍 Filter only when searchQuery updates (after clicking search icon)
   const filteredTickets = tickets.filter(
     (ticket) =>
       ticket.id.toLowerCase().includes(searchQuery.toLowerCase()) ||

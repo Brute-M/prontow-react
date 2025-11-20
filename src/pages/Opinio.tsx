@@ -3,6 +3,26 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import opinioIcon from "@/images/opinio-icon.png";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 1 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
 
 function Opinio() {
   const navigate = useNavigate();
@@ -67,20 +87,33 @@ function Opinio() {
 
   return (
     <AdminLayout title="Games > Opinio">
-      <div className="p-3 sm:p-6 space-y-6 sm:space-y-8">
-        <div className="flex justify-end items-center">
+      <motion.div
+        className="p-3 sm:p-6 space-y-6 sm:space-y-8"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.div className="flex justify-end items-center" 
+        // @ts-ignore
+        variants={itemVariants}>
           <button className="text-[#119D82] text-sm font-semibold hover:underline">
             View All
           </button>
-        </div>
+        </motion.div>
 
         {/* Match Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5"
+          // @ts-ignore
+          variants={itemVariants}
+        >
           {matches.map((match, i) => (
-            <div
+            <motion.div
               key={i}
               className="relative bg-[#E8F7E8] rounded-[8px] shadow-md flex justify-between items-center px-4 py-3 border-l border-[#D1EAD1] h-[92px] cursor-pointer hover:shadow-lg transition-shadow"
               onClick={() => navigate(`/games/opinio/ask-question`)}
+              // @ts-ignore
+              variants={itemVariants}
             >
               <div className="absolute top-2 left-3 flex items-center gap-1">
                 <span className="w-2 h-2 bg-[#E90000] rounded-full animate-pulse"></span>
@@ -100,12 +133,14 @@ function Opinio() {
                   className="w-8 h-8 object-contain"
                 />
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* User Opinio Record */}
-        <div className="bg-white rounded-xl shadow-sm p-3 sm:p-5 border border-gray-100">
+        <motion.div className="space-y-4 sm:space-y-5" 
+        // @ts-ignore
+        variants={itemVariants}>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-5 gap-3">
             <h3 className="text-base sm:text-lg font-semibold text-[#1D1D1D]">
               User Opinio Record
@@ -200,8 +235,8 @@ function Opinio() {
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </AdminLayout>
   );
 }

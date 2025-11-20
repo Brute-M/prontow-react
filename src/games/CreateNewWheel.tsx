@@ -1,6 +1,7 @@
 import { AdminLayout } from "@/components/AdminLayout";
 import { Trash2, ChevronDown } from "lucide-react";
 import React, { useState } from "react";
+import { Input } from "@/components/ui/input"; 
 
 function CreateNewWheel() {
   const [segments] = useState(Array(8).fill(null));
@@ -10,12 +11,15 @@ function CreateNewWheel() {
       <div className="p-4 md:p-6 lg:p-8">
         {/* Wheel Name */}
         <div className="max-w-5xl mx-auto w-full">
-          <div className="bg-[#E9E6C3] border rounded-md px-4 py-2 mb-3 shadow-sm">
-            <p className="text-[#0C4128] font-medium">Wheel Name</p>
+          <div className="bg-[#E9E6C3] border rounded-md shadow-sm mb-3">
+            <Input
+              placeholder="Wheel Name"
+              className="w-full bg-transparent border-none focus-visible:ring-0 text-[#0C4128] font-medium placeholder:text-[#0C4128]/70"
+            />
           </div>
 
           {/* Total Segments */}
-          <div className="bg-[#E9E6C3] border rounded-md px-4 py-2 mb-6 flex justify-between items-center shadow-sm">
+          <div className="bg-[#E9E6C3] border rounded-md px-4 py-2 mb-3 flex justify-between items-center shadow-sm">
             <p className="text-[#0C4128] font-medium">Total Segments</p>
             <ChevronDown className="text-[#0C4128]" />
           </div>

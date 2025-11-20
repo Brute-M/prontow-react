@@ -877,7 +877,7 @@ const filteredProducts = Array.isArray(products)
                     { label: "Pack Size", name: "packSize", required: false },
                   ].map((field) => (
                     <div key={field.name}>
-                      <label className="block text-xs sm:text-sm font-medium mb-1">
+                      <label className="block text-xs sm:text-sm font-medium mb-1"> 
                         {field.label}{" "}
                         {field.required && (
                           <span className="text-red-500">*</span>
@@ -905,7 +905,12 @@ const filteredProducts = Array.isArray(products)
                           type={field.type || "text"}
                           value={formData[field.name]}
                           onChange={handleChange}
-                          placeholder={`Enter ${field.label.toLowerCase()}`}
+                          placeholder={
+                            field.name === "packSize"
+                              ? `Enter ${field.label.toLowerCase()} (e.g., 1, 2, 3)`
+                              : field.name === "size"
+                              ? `Enter ${field.label.toLowerCase()} (e.g., small, large, medium)`
+                              : `Enter ${field.label.toLowerCase()}`}
                           className="h-9 sm:h-10 text-xs sm:text-sm"
                         />
                       )}

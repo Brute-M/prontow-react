@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,34 +22,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { getOrders, updateOrderStatus } from "@/adminApi/orderApi";
 import { toast } from "sonner";
-
-// Animation variants for main page content
-const containerVariants = {
-  hidden: { opacity: 1 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.15, // Delay between each child animation
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: { duration: 0.5, ease: "easeOut" },
-  },
-};
-
-// Animation variants for dialog content
-const dialogContentVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.2, ease: "easeOut" } },
-  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.15, ease: "easeIn" } },
-};
-
 
 export default function OrderManagement() {
   const [orders, setOrders] = useState([]);
@@ -210,22 +181,14 @@ export default function OrderManagement() {
       </AdminLayout>
     );
   }
-  
+
   return (
-    <AdminLayout title="Order Management"> 
-      <motion.div
-        className="space-y-6 px-6 pb-8" // Added px-6 pb-8 for consistent padding with other pages
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+    <AdminLayout title="Order Management">
+      <div className="space-y-6">
         {/* Header Actions - Only Search Bar */}
-        <motion.div // @ts-ignore
-        variants={itemVariants}
-        className="flex flex-wrap gap-4 items-center">
+        <div className="flex flex-wrap gap-4 items-center">
           <div className="flex-1 min-w-[200px] max-w-md relative">
-            {/* Changed icon size for consistency */}
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               placeholder="Search by order ID or customer name"
               className="pl-10 bg-muted border-0"
@@ -233,12 +196,10 @@ export default function OrderManagement() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-        </motion.div>
+        </div>
 
         {/* Orders Table */}
-        <motion.div // @ts-ignore
-        variants={itemVariants}
-        className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="border-b border-border">
@@ -301,13 +262,10 @@ export default function OrderManagement() {
               </tbody>
             </table>
           </div>
-        </motion.div>
 
-        {/* Pagination */}
-        {filteredOrders.length > 0 && (<motion.div // @ts-ignore
-        variants={itemVariants}
-        >
-            <div className="flex items-center justify-between mt-4 flex-wrap"> {/* Adjusted styling for better spacing */}
+          {/* Pagination */}
+          {filteredOrders.length > 0 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-border">
               <div className="text-sm text-muted-foreground">
                 Showing {startIndex + 1} to {Math.min(endIndex, filteredOrders.length)} of{" "}
                 {filteredOrders.length} entries
@@ -346,22 +304,13 @@ export default function OrderManagement() {
                 </Button>
               </div>
             </div>
-          </motion.div>
-        )}
-      </motion.div>
+          )}
+        </div>
+      </div>
 
       {/* View Order Dialog */}
-      <AnimatePresence>
-        {viewDialogOpen && (
-          <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-            <motion.div
-            // @ts-ignore
-              variants={dialogContentVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="w-full max-w-lg" // Apply className here as DialogContent is not a direct motion component
-            >
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="w-full max-w-lg">
           <DialogHeader>
             <DialogTitle>Order Details</DialogTitle>
             <DialogDescription>
@@ -423,23 +372,12 @@ export default function OrderManagement() {
               Close
             </Button>
           </DialogFooter>
-            </motion.div>
-          </Dialog>
-        )}
-      </AnimatePresence>
+        </DialogContent>
+      </Dialog>
 
       {/* Update Status Dialog */}
-      <AnimatePresence>
-        {updateDialogOpen && (
-          <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
-            <motion.div
-            // @ts-ignore
-              variants={dialogContentVariants}
-              initial="hidden"
-              animate="visible"
-              exit="exit"
-              className="w-full max-w-lg" // Apply className here
-            >
+      <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+        <DialogContent className="w-full max-w-lg">
           <DialogHeader>
             <DialogTitle>Update Order Status</DialogTitle>
             <DialogDescription>
@@ -520,10 +458,8 @@ export default function OrderManagement() {
               {updating ? "Updating..." : "Update Status"}
             </Button>
           </DialogFooter>
-            </motion.div>
-          </Dialog>
-        )}
-      </AnimatePresence>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
