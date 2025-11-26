@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff } from 'lucide-react';
 import { motion } from "framer-motion";
 import axios from "axios";
+import { toast } from "sonner";
 import loginImage from '@/images/login-image.png'
 
 
@@ -30,21 +31,14 @@ export default function Login() {
       );
 
       if (response.data?.status && response.data?.data?.otp) {
-        // Store email for 2FA verification
-        localStorage.setItem("loginEmail", email);
         localStorage.setItem("isNewUser", response.data.data.isNew.toString());
-
-        // Navigate to 2FA page - NO ALERT HERE
         navigate("/2fa");
-
-        // Remove console.log in production
-        // console.log("OTP received:", response.data.data.otp);
       } else {
-        alert(response.data?.message || "Login failed!");
+        toast.error(response.data?.message || "Login failed!");
       }
 
     } catch (error: any) {
-      alert(error.response?.data?.message || "Login failed!");
+      toast.error(error.response?.data?.message || "Login failed!");
     } finally {
       setLoading(false);
     }

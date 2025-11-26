@@ -1,13 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { AdminLayout } from "@/components/AdminLayout"; 
-import { getCustomers, deleteCustomer, updateCustomerStatus } from "@/adminApi/customerApi";
+import { DateRange } from "react-day-picker";
+import { AdminLayout } from "@/components/AdminLayout";
+import { getCustomers, deleteCustomer, updateCustomerStatus, addCustomer, getCustomersByRating, getCustomersByDateRange } from "@/adminApi/customerApi";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MoreVertical, X } from "lucide-react";
+import { Search, MoreVertical, X, Calendar as CalendarIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -27,12 +31,20 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { Calendar } from "@/components/ui/calendar";
 
 export default function CustomerRelationship() {
   const [customers, setCustomers] = useState([]);
@@ -44,56 +56,134 @@ export default function CustomerRelationship() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  // Only include the required fields in the newCustomer state
+  const [newCustomer, setNewCustomer] = useState({
+    firstName: "",
+    lastName: "",
+    phoneNumber: "",
+    email: "",
+    dateOfBirth: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const itemsPerPage = 8;
 
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        setLoading(true);
-        const response = await getCustomers();
-        if (response.data && response.data.status) {
-          const formattedCustomers = response.data.data.customers.map(
-            (customer, index) => ({
-              id: customer._id,
-              sno: `CGS${String(index + 1).padStart(3, "0")}`,
-              name:
-                customer.firstName || customer.lastName
-                  ? `${customer.firstName} ${customer.lastName}`.trim()
-                  : "N/A",
-              phone: customer.phoneNumber,
-              email: customer.email || "N/A",
-              dateOfBirth: customer.dateOfBirth || "N/A",
-              maritalStatus: customer.maritalStatus || "N/A",
-              anniversary: customer.anniversary || "N/A",
-              gender: customer.gender || "N/A",
-              scoreCode: "N/A",
-              status: customer.isBlocked ? "Blocked" : "Active",
-              rawData: customer,
-            })
-          );
-          setCustomers(formattedCustomers);
-        }
-      } catch (error) {
-        console.error("Failed to fetch customers:", error);
-      } finally {
-        setLoading(false);
+  const fetchCustomers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getCustomers();
+      if (response.data && response.data.status) {
+        const reversedCustomers = response.data.data.customers.reverse();
+        const formattedCustomers = reversedCustomers.map(
+          (customer, index) => ({
+            id: customer._id,
+            sno: `CGS${String(index + 1).padStart(3, "0")}`,
+            name: customer.firstName || customer.lastName ? `${customer.firstName} ${customer.lastName}`.trim() : "N/A",
+            phone: customer.phoneNumber,
+            email: customer.email || "N/A",
+            dateOfBirth: customer.dateOfBirth || "N/A",
+            maritalStatus: customer.maritalStatus || "N/A",
+            anniversary: customer.anniversary || "N/A",
+            gender: customer.gender || "N/A",
+            scoreCode: "N/A",
+            status: customer.isBlocked ? "Blocked" : "Active",
+            rawData: customer,
+          }),
+        );
+        setCustomers(formattedCustomers);
       }
-    };
-
-    fetchCustomers();
+    } catch (error) {
+      console.error("Failed to fetch customers:", error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  const handleFilterByRating = useCallback(async (rating: number | null) => {
+    try {
+      setLoading(true);
+      setCurrentPage(1); // Reset to the first page on new filter
+      const response = rating === null ? await getCustomers() : await getCustomersByRating(rating);
+
+      if (response.data && response.data.status) {
+        const customersData = response.data.data.customers || [];
+        const reversedCustomers = [...customersData].reverse();
+        const formattedCustomers = reversedCustomers.map(
+          (customer, index) => ({
+            id: customer._id,
+            sno: `CGS${String(index + 1).padStart(3, "0")}`,
+            name: customer.firstName || customer.lastName ? `${customer.firstName} ${customer.lastName}`.trim() : "N/A",
+            phone: customer.phoneNumber,
+            email: customer.email || "N/A",
+            dateOfBirth: customer.dateOfBirth || "N/A",
+            maritalStatus: customer.maritalStatus || "N/A",
+            anniversary: customer.anniversary || "N/A",
+            gender: customer.gender || "N/A",
+            scoreCode: "N/A",
+            status: customer.isBlocked ? "Blocked" : "Active",
+            rawData: customer,
+          }),
+        );
+        setCustomers(formattedCustomers);
+      }
+    } catch (error) {
+      console.error(`Failed to fetch customers for rating ${rating}:`, error);
+      setCustomers([]); // Clear list on error
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleDateRangeFilter = useCallback(async () => {
+    if (!dateRange?.from || !dateRange?.to) {
+      toast.warning("Please select both a start and end date.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setCurrentPage(1);
+      const startDate = format(dateRange.from, "yyyy-MM-dd");
+      const endDate = format(dateRange.to, "yyyy-MM-dd");
+      const response = await getCustomersByDateRange(startDate, endDate);
+
+      if (response.data && response.data.status) {
+        const customersData = response.data.data.customers || [];
+        const reversedCustomers = [...customersData].reverse();
+        const formattedCustomers = reversedCustomers.map((customer, index) => ({
+          id: customer._id,
+          sno: `CGS${String(index + 1).padStart(3, "0")}`,
+          name: customer.firstName || customer.lastName ? `${customer.firstName} ${customer.lastName}`.trim() : "N/A",
+          phone: customer.phoneNumber,
+          email: customer.email,
+          status: customer.isBlocked ? "Blocked" : "Active",
+          rawData: customer,
+        }));
+        setCustomers(formattedCustomers);
+      }
+    } catch (error) {
+      console.error("Failed to fetch customers for date range:", error);
+      setCustomers([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange]);
+
+  useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   const handleDeleteCustomer = useCallback(async (customerId: string) => {
     if (window.confirm("Are you sure you want to delete this customer?")) {
       try {
         setDeleting(true);
-        await deleteCustomer(customerId);
+        const response = await deleteCustomer(customerId);
         setCustomers(customers.filter((customer) => customer.id !== customerId));
-        alert("Customer deleted successfully!");
-      } catch (error) {
+        toast.success(response.data?.message || "Customer deleted successfully!");
+      } catch (error: any) {
         console.error("Failed to delete customer:", error);
-        alert("Failed to delete customer. Please try again.");
+        toast.error("Failed to delete customer. Please try again.");
       } finally {
         setDeleting(false);
       }
@@ -115,18 +205,64 @@ export default function CustomerRelationship() {
                 : customer
             )
           );
-          window.alert(`Customer ${action}ed successfully!`);
+          toast.success(`Customer ${action}ed successfully!`);
         } else {
-          window.alert(`Failed to ${action} customer: ${response.data?.message || "Unknown error"}`);
+          toast.error(`Failed to ${action} customer: ${response.data?.message || "Unknown error"}`);
         }
       } catch (error: any) {
         console.error(`Failed to ${action} customer:`, error);
-        window.alert(`Failed to ${action} customer: ${error.message}`);
+        toast.error(`Failed to ${action} customer: ${error.message}`);
       } finally {
         setUpdatingStatus(false);
       }
     }
   }, []);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewCustomer((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDateChange = (date) => {
+    setNewCustomer((prev) => ({ ...prev, dateOfBirth: format(date, "dd/MM/yyyy") }));
+  };
+
+  const handleSelectChange = (name) => (value) => {
+    setNewCustomer((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddCustomer = async () => {
+    // Basic validation
+    if (!newCustomer.firstName || !newCustomer.phoneNumber || !newCustomer.email) {
+      toast.warning("Please fill in First Name, Mobile Number, and Email.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Construct the payload exactly as required by the API
+      const payload: any = {
+        firstName: newCustomer.firstName,
+        lastName: newCustomer.lastName,
+        email: newCustomer.email,
+        phoneNumber: newCustomer.phoneNumber,
+        dateOfBirth: newCustomer.dateOfBirth, // Matching payload key
+        password: "SecurePass123", // Using default password as per payload example, consider making this dynamic or more secure
+        profilePic: "https://example.com/profile.jpg", // Using default profile pic as per payload example, consider making this dynamic
+      };
+      await addCustomer(payload);
+      toast.success("Customer added successfully!");
+      setIsDrawerOpen(false); // Close the drawer
+      setNewCustomer({ // Reset form
+        firstName: "", lastName: "", phoneNumber: "", email: "",
+        dateOfBirth: "", }); fetchCustomers(); // Refetch customers to show the new one
+    } catch (error) {
+      console.error("Failed to add customer:", error);
+      toast.error(`Failed to add customer. ${error.response?.data?.message || 'Please try again.'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleViewDetails = (customer) => {
     setSelectedCustomer(customer);
@@ -159,13 +295,53 @@ export default function CustomerRelationship() {
         {/* Top Filters */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex flex-wrap gap-3 items-center w-full lg:w-auto">
-            <Button className="rounded-full bg-[#E8E8C6] text-gray-700 hover:bg-[#dddcae] text-sm sm:text-base">
-              Filter by Rating ▼
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="rounded-full bg-[#E8E8C6] text-gray-700 hover:bg-[#dddcae] text-sm sm:text-base">
+                  Filter by Rating ▼
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {[5, 4, 3, 2, 1].map((rating) => (
+                  <DropdownMenuItem key={rating} onSelect={() => handleFilterByRating(rating)}>
+                    {rating} Star{rating > 1 ? 's' : ''}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => handleFilterByRating(null)}>Show All</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            <Button className="rounded-full bg-[#E8E8C6] text-gray-700 hover:bg-[#dddcae] text-sm sm:text-base">
-              Date Range ▼
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "rounded-full bg-[#E8E8C6] text-gray-700 hover:bg-[#dddcae] text-sm sm:text-base border-none",
+                    !dateRange && "text-gray-600"
+                  )}
+                >
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(dateRange.from, "LLL dd, y")
+                    )
+                  ) : (
+                    <span>Date Range ▼</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={1} />
+                <div className="p-2 border-t flex justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => { setDateRange(undefined); fetchCustomers(); }}>Clear</Button>
+                  <Button size="sm" className="bg-[#119D82] hover:bg-[#0e866f] text-white" onClick={handleDateRangeFilter}>Apply</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
@@ -200,46 +376,78 @@ export default function CustomerRelationship() {
 
                 <div className="flex-1 overflow-y-auto px-6 py-6">
                   <div className="space-y-5">
-                    <Input 
-                      placeholder="Name" 
-                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
+                    <Input
+ name="firstName" value={newCustomer.firstName} onChange={handleInputChange} placeholder="First Name *" className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400"
                     />
-                    <Input 
-                      placeholder="Mobile Number" 
-                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
+                    <Input
+
+                      name="lastName"
+                      value={newCustomer.lastName}
+                      onChange={handleInputChange}
+                      placeholder="Last Name"
+                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400"
                     />
-                    <Input 
-                      placeholder="Email" 
-                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
+                    <Input
+                      name="phoneNumber"
+                      value={newCustomer.phoneNumber}
+                      onChange={handleInputChange}
+                      onInput={(e) => {
+                        // @ts-ignore
+                        e.target.value = e.target.value.slice(0, 10); // Limit to 10 digits
+                      }}
+                      placeholder="Mobile Number *"
+                      type="number"
+                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400"
                     />
-                    <Input 
-                      placeholder="DD/MM/YY" 
-                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
+                    <Input
+                      name="email"
+                      type="email"
+                      value={newCustomer.email}
+                      onChange={handleInputChange}
+                      placeholder="Email *"
+                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400"
                     />
-                    <Select>
-                      <SelectTrigger className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600">
-                        <SelectValue placeholder="Marital Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="single">Single</SelectItem>
-                        <SelectItem value="married">Married</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input 
-                      placeholder="Anniversary" 
-                      className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400" 
-                    />
-                    <Select>
-                      <SelectTrigger className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600">
-                        <SelectValue placeholder="Gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button className="w-full h-12 bg-green-700 hover:bg-green-800 text-white rounded-lg text-base font-medium">
-                      Add
+                    <div className="relative">
+                      <Input
+                        name="dateOfBirth"
+                        type="text"
+                        value={newCustomer.dateOfBirth}
+                        onChange={(e) => {
+                          const previousValue = newCustomer.dateOfBirth;
+                          const { value } = e.target;
+                          const digits = value.replace(/\D/g, '');
+1
+                          if (value.length > previousValue.length) {
+                            if (digits.length === 2 || digits.length === 4) {
+                              setNewCustomer((prev) => ({ ...prev, dateOfBirth: `${value}/` }));
+                            } else {
+                              setNewCustomer((prev) => ({ ...prev, dateOfBirth: value }));
+                            }
+                          }
+                          else {
+                            setNewCustomer((prev) => ({ ...prev, dateOfBirth: value }));
+                          }
+                        }}
+                        placeholder="DD/MM/YYYY"
+                        className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400 pr-10"
+                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 p-0 hover:bg-gray-200">
+                            <CalendarIcon className="h-4 w-4 text-gray-500" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar mode="single" onSelect={handleDateChange} initialFocus />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <Button
+                      onClick={handleAddCustomer}
+                      disabled={isSubmitting}
+                      className="w-full h-12 text-white rounded-lg text-base font-medium"
+                    >
+                      {isSubmitting ? "Adding..." : "Add"}
                     </Button>
                   </div>
                 </div>
@@ -306,7 +514,7 @@ export default function CustomerRelationship() {
                             <Button
                               size="sm"
                               disabled={updatingStatus}
-                              className="bg-red-600 text-white hover:bg-red-700 px-3 py-1 rounded-md"
+                              className="bg-red-600 text-white hover:bg-red-700 px-3 py-1 rounded-md w-[72px] justify-center"
                               onClick={() => handleUpdateStatus(customer.id, true)}
                             >
                               Block
@@ -315,7 +523,7 @@ export default function CustomerRelationship() {
                             <Button
                               size="sm"
                               disabled={updatingStatus}
-                              className="bg-gray-800 text-white hover:bg-gray-900 px-3 py-1 rounded-md"
+                              className="bg-gray-800 text-white hover:bg-gray-900 px-3 py-1 rounded-md w-[72px] justify-center"
                               onClick={() => handleUpdateStatus(customer.id, false)}
                             >
                               Unblock
@@ -335,7 +543,6 @@ export default function CustomerRelationship() {
                               <DropdownMenuItem onClick={() => handleViewDetails(customer)}>
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem>Edit</DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteCustomer(customer.id)}
                                 className="text-red-600 focus:text-red-600"
@@ -425,7 +632,7 @@ export default function CustomerRelationship() {
                     <span
                       className={`px-4 py-2 rounded-full text-sm font-medium ${
                         selectedCustomer.status === "Active"
-                          ? "bg-green-100 text-green-700"
+                          ? " text-green-700"
                           : "bg-red-100 text-red-700"
                       }`}
                     >

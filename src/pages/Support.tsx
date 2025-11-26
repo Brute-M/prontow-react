@@ -1,44 +1,168 @@
 import { AdminLayout } from '@/components/AdminLayout';
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, SlidersHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { getAllTickets, updateTicketStatus } from '@/adminApi/supportApi';
+import { Toaster, toast } from 'sonner';
 
 interface Ticket {
+  _id: string; // Raw ID for API calls
   id: string;
   customerName: string;
   submissionDate: string;
   issueType: string;
-  priorityLevel: 'High Priority' | 'Low Priority';
-  status: 'Pending' | 'Resolved';
+  priorityLevel: 'High' | 'Low' | 'Medium';
+  status: 'OPEN' | 'RESOLVED' | 'IN_PROGRESS' | 'CLOSED'; // Added 'CLOSED' status
 }
 
-const tickets: Ticket[] = [
-  { id: '#9865', customerName: 'Manish Kumar', submissionDate: '11-Nov-24', issueType: 'Delivery Delay', priorityLevel: 'High Priority', status: 'Pending' },
-  { id: '#2356', customerName: 'Harsh Singh', submissionDate: '11-Nov-24', issueType: 'Refund Issue', priorityLevel: 'High Priority', status: 'Pending' },
-  { id: '#7462', customerName: 'Riya Sharma', submissionDate: '11-Nov-24', issueType: 'Delivery Delay', priorityLevel: 'Low Priority', status: 'Resolved' },
-  { id: '#8421', customerName: 'Aman Verma', submissionDate: '11-Nov-24', issueType: 'Refund Issue', priorityLevel: 'Low Priority', status: 'Resolved' },
-  { id: '#5639', customerName: 'Simran Kaur', submissionDate: '11-Nov-24', issueType: 'Delivery Delay', priorityLevel: 'High Priority', status: 'Pending' },
-];
+type SortKey = 'priorityLevel' | 'submissionDate' | 'customerName';
+interface SortConfig {
+  key: SortKey;
+  direction: 'asc' | 'desc';
+}
+
+interface StatusChangeInfo {
+  ticketId: string;
+  newStatus: Ticket['status'];
+}
 
 function Support() {
   const navigate = useNavigate();
 
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null);
+  const [statusChangeInfo, setStatusChangeInfo] = useState<StatusChangeInfo | null>(null);
+
+  useEffect(() => {
+    const fetchTickets = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getAllTickets();
+        const formattedTickets = response.data.data.map((ticket: any) => ({
+          _id: ticket._id, // Store raw ID
+          id: `#${ticket._id.slice(-6)}`, 
+          customerName: ticket.user?.email || 'N/A', // Use email as name is not available
+          submissionDate: new Date(ticket.createdAt).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: '2-digit',
+          }),
+          issueType: ticket.issueType,
+          priorityLevel: ticket.priority || 'Medium', // Default to Medium if not present
+          status: ticket.status,
+        }));
+        setTickets(formattedTickets);
+        setError(null);
+      } catch (err) {
+        setError("Failed to fetch tickets.");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTickets();
+  }, []);
 
   const totalComplaints = tickets.length;
-  const resolvedComplaints = tickets.filter((t) => t.status === 'Resolved').length;
-  const pendingComplaints = tickets.filter((t) => t.status === 'Pending').length;
+  const resolvedComplaints = tickets.filter((t) => t.status === 'RESOLVED').length;
+  const pendingComplaints = tickets.filter((t) => t.status === 'OPEN').length;
 
-  const filteredTickets = tickets.filter(
-    (ticket) =>
-      ticket.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.issueType.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleStatusChangeRequest = (ticketId: string, newStatus: Ticket['status']) => {
+    setStatusChangeInfo({ ticketId, newStatus });
+  };
+
+  const handleConfirmStatusChange = async () => {
+    if (!statusChangeInfo) return;
+
+    const { ticketId, newStatus } = statusChangeInfo;
+    // Optimistically update the UI
+    const originalTickets = [...tickets];
+    setTickets(currentTickets =>
+      currentTickets.map(t => (t._id === ticketId ? { ...t, status: newStatus } : t))
+    );
+    setStatusChangeInfo(null); // Close dialog immediately
+
+    try {
+      await updateTicketStatus(ticketId, { status: newStatus });
+      toast.success('Status updated successfully!');
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      setTickets(originalTickets);
+      toast.error("Failed to update status. Please try again.");
+    }
+  };
+
+  const handleRowClick = (ticketId: string) => {
+    navigate(`/support/support-details/${ticketId}`);
+  };
+
+  const sortedAndFilteredTickets = useMemo(() => {
+    let filtered = tickets?.filter(
+      (ticket) =>
+        ticket.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ticket.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ticket.issueType.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (sortConfig !== null) {
+      filtered.sort((a, b) => {
+        let aValue: any = a[sortConfig.key];
+        let bValue: any = b[sortConfig.key];
+
+        // Custom sorting logic
+        if (sortConfig.key === 'submissionDate') {
+          aValue = new Date(aValue).getTime();
+          bValue = new Date(bValue).getTime();
+        } else if (sortConfig.key === 'priorityLevel') {
+          const priorityOrder = { 'High': 0, 'Medium': 1, 'Low': 2 };
+          aValue = priorityOrder[aValue as 'High' | 'Medium' | 'Low'];
+          bValue = priorityOrder[bValue as 'High' | 'Medium' | 'Low'];
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [tickets, searchQuery, sortConfig]);
+
+  const handleSort = (key: SortKey) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
 
   return (
     <AdminLayout title="Supports">
@@ -90,12 +214,29 @@ function Support() {
               <Search className="w-4 h-4 md:w-5 md:h-5 text-white" />
             </Button>
 
-            <Button
-              size="icon"
-              className="h-[45px] md:h-[50px] w-[45px] md:w-[50px] rounded-full bg-[#1BA9D8] hover:bg-[#1693BB]"
-            >
-              <SlidersHorizontal className="w-4 h-4 md:w-5 md:h-5 text-white" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  className="h-[45px] md:h-[50px] w-[45px] md:w-[50px] rounded-full bg-[#1BA9D8] hover:bg-[#1693BB]"
+                >
+                  <SlidersHorizontal className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Sort By</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => handleSort('priorityLevel')}>
+                  Priority (High/Low)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleSort('submissionDate')}>
+                  Date (Newest/Oldest)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleSort('customerName')}>
+                  Customer Name (A-Z/Z-A)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -115,11 +256,23 @@ function Support() {
               </thead>
 
               <tbody>
-                {filteredTickets.length > 0 ? (
-                  filteredTickets.map((ticket, index) => (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-6 text-gray-500">
+                      Loading tickets...
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={6} className="text-center py-6 text-red-500">
+                      {error}
+                    </td>
+                  </tr>
+                ) : sortedAndFilteredTickets.length > 0 ? (
+                  sortedAndFilteredTickets.map((ticket, index) => (
                     <tr
                       key={index}
-                      onClick={() => navigate(`/support/support-details`)}
+                      onClick={() => handleRowClick(ticket._id)}
                       className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                     >
                       <td className="px-4 md:px-6 py-4 font-medium">{ticket.id}</td>
@@ -129,20 +282,46 @@ function Support() {
                       <td className="px-4 md:px-6 py-4">
                         <span
                           className={`font-semibold ${
-                            ticket.priorityLevel === 'High Priority' ? 'text-red-600' : 'text-orange-500'
+                            ticket.priorityLevel === 'High' ? 'text-red-600' : ticket.priorityLevel === 'Medium' ? 'text-orange-500' : 'text-yellow-500'
                           }`}
                         >
                           {ticket.priorityLevel}
                         </span>
                       </td>
                       <td className="px-4 md:px-6 py-4">
-                        <span
-                          className={`font-semibold ${
-                            ticket.status === 'Resolved' ? 'text-green-600' : 'text-blue-500'
-                          }`}
-                        >
-                          {ticket.status}
-                        </span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className={`font-semibold h-auto py-1 px-2 rounded-md ${
+                                ticket.status === 'RESOLVED' ? 'text-green-600 bg-green-100' :
+                                ticket.status === 'OPEN' ? 'text-blue-500 bg-blue-100' :
+                                ticket.status === 'IN_PROGRESS' ? 'text-orange-500 bg-orange-100' :
+                                ticket.status === 'CLOSED' ? 'text-gray-600 bg-gray-100' :
+                                'text-gray-500 bg-gray-100' // Default fallback
+                              }`} 
+                              onClick={(e) => e.stopPropagation()} // Prevent row click
+                            >
+                              {ticket.status}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onSelect={() => handleStatusChangeRequest(ticket._id, 'OPEN')}>
+                              OPEN
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleStatusChangeRequest(ticket._id, 'RESOLVED')}>
+                              RESOLVED
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleStatusChangeRequest(ticket._id, 'IN_PROGRESS')}>
+                              IN_PROGRESS
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleStatusChangeRequest(ticket._id, 'CLOSED')}>
+                              CLOSED
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   ))
@@ -157,6 +336,26 @@ function Support() {
             </table>
           </div>
         </div>
+
+        {/* Status Change Confirmation Dialog */}
+        <Dialog open={!!statusChangeInfo} onOpenChange={() => setStatusChangeInfo(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Status Change</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to change the status to{' '}
+                <span className="font-semibold">{statusChangeInfo?.newStatus}</span>?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setStatusChangeInfo(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleConfirmStatusChange}>Yes, Change Status</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
       </motion.div>
     </AdminLayout>
   );

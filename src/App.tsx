@@ -30,7 +30,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <Sonner position="top-center" richColors />
+      <Sonner position="top-center" richColors duration={2000} />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
@@ -45,7 +45,7 @@ const App = () => (
           <Route path="/payments-and-settlements" element={<PaymentsAndSettlements />} />
 
           <Route path="/support" element={<Support />} />
-          <Route path="/support/support-details" element={<SupportDetails />} />
+          <Route path="/support/support-details/:ticketId" element={<SupportDetails />} />
 
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/general" element={<GeneralSettings />} />

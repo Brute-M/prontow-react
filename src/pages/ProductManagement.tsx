@@ -48,6 +48,7 @@ import {
   getAllCategories,
 } from "@/adminApi/categoryApi";
 import axios from "axios";
+import { toast } from "sonner";
 
 const containerVariants = {
   hidden: { opacity: 1 },
@@ -230,7 +231,7 @@ export default function ProductManagement() {
       const missingFields = Object.keys(requiredFields)
         .filter((field) => !formData[field])
         .map((field) => requiredFields[field]);
-      alert(
+      toast.warning(
         `Please fill the following required fields: ${missingFields.join(", ")}`
       );
       return;
@@ -270,8 +271,7 @@ export default function ProductManagement() {
       }
 
       if (response.data?.status) {
-        alert(
-          response.data.message ||
+        toast.success(response.data.message ||
             (editingProduct
               ? "✅ Product updated successfully!"
               : "✅ Product added successfully!")
@@ -281,11 +281,11 @@ export default function ProductManagement() {
         resetForm();
         await fetchProducts();
       } else {
-        alert(response.data?.message || "Failed to save product");
+        toast.error(response.data?.message || "Failed to save product");
       }
     } catch (err) {
       console.error("❌ Submit Error:", err);
-      alert(err.response?.data?.message || "Failed to save product");
+      toast.error(err.response?.data?.message || "Failed to save product");
     } finally {
       setLoading(false);
     }
@@ -293,11 +293,11 @@ export default function ProductManagement() {
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
-      alert("Please enter a category name.");
+      toast.warning("Please enter a category name.");
       return;
     }
     if (!newCategoryDescription.trim()) {
-      alert("Please enter a category description.");
+      toast.warning("Please enter a category description.");
       return;
     }
     try {
@@ -306,24 +306,24 @@ export default function ProductManagement() {
         description: newCategoryDescription,
         parent: null,
       });
-      alert("✅ Category added successfully!");
+      toast.success("✅ Category added successfully!");
       setAddCategoryDialogOpen(false);
       setNewCategoryName("");
       setNewCategoryDescription("");
       await fetchCategories();
     } catch (err) {
       console.error("Add category error:", err.response?.data || err);
-      alert(err.response?.data?.message || "Failed to add category");
+      toast.error(err.response?.data?.message || "Failed to add category");
     }
   };
 
   const handleAddSubCategory = async () => {
     if (!selectedParentCategory) {
-      alert("Please select a parent category.");
+      toast.warning("Please select a parent category.");
       return;
     }
     if (!newSubCategoryName.trim()) {
-      alert("Please enter a sub-category name.");
+      toast.warning("Please enter a sub-category name.");
       return;
     }
     try {
@@ -332,14 +332,14 @@ export default function ProductManagement() {
         description: "",
         parent: selectedParentCategory,
       });
-      alert("✅ Sub-category added successfully!");
+      toast.success("✅ Sub-category added successfully!");
       setAddSubCategoryDialogOpen(false);
       setNewSubCategoryName("");
       setSelectedParentCategory("");
       await fetchCategories();
     } catch (err) {
       console.error("Add sub-category error:", err.response?.data || err);
-      alert(err.response?.data?.message || "Failed to add sub-category");
+      toast.error(err.response?.data?.message || "Failed to add sub-category");
     }
   };
 
@@ -369,23 +369,23 @@ export default function ProductManagement() {
   const handleEdit = (product) => {
     setEditingProduct(product);
     setFormData({
-      brandName: product.brandName || "",
-      productName: product.productName || "",
+      brandName: product.brandName !== undefined ? product.brandName : "",
+      productName: product.productName !== undefined ? product.productName : "",
       category: product.category?._id || "",
-      company: product.company || "",
-      mrp: product.mrp || "",
-      costPrice: product.costPrice || "",
-      stock: product.stock || "",
-      itemCode: product.itemCode || "",
-      gst: product.gst || "",
-      hsnCode: product.hsnCode || "",
-      size: product.size || "",
-      discount: product.discount || "",
-      packSize: product.packSize || "",
-      description: product.description || "",
-      image: product.image || "",
+      company: product.company !== undefined ? product.company : "",
+      mrp: product.mrp !== undefined ? product.mrp : "",
+      costPrice: product.costPrice !== undefined ? product.costPrice : "",
+      stock: product.stock !== undefined ? product.stock : "",
+      itemCode: product.itemCode !== undefined ? product.itemCode : "",
+      gst: product.gst !== undefined ? product.gst : "",
+      hsnCode: product.hsnCode !== undefined ? product.hsnCode : "",
+      size: product.size !== undefined ? product.size : "",
+      discount: product.discount !== undefined ? product.discount : "",
+      packSize: product.packSize !== undefined ? product.packSize : "",
+      description: product.description !== undefined ? product.description : "",
+      image: product.image !== undefined ? product.image : "",
     });
-
+  
     setImagePreview(product.image || null);
     setImageFile(null);
     setShowForm(true);
@@ -398,7 +398,7 @@ export default function ProductManagement() {
         await fetchProducts();
       } catch (err) {
         console.error("Delete error:", err);
-        alert("Failed to delete product");
+        toast.error("Failed to delete product");
       }
     }
   };
@@ -906,11 +906,15 @@ const filteredProducts = Array.isArray(products)
                           value={formData[field.name]}
                           onChange={handleChange}
                           placeholder={
-                            field.name === "packSize"
-                              ? `Enter ${field.label.toLowerCase()} (e.g., 1, 2, 3)`
-                              : field.name === "size"
-                              ? `Enter ${field.label.toLowerCase()} (e.g., small, large, medium)`
-                              : `Enter ${field.label.toLowerCase()}`}
+                            field.name === "hsnCode"
+                              ? `Enter ${field.label.toLowerCase()} (for eg., 22011010)`
+                              : field.name === "itemCode"
+                                ? `Enter ${field.label.toLowerCase()} (for eg., CMT1234)`
+                                : field.name === "packSize"
+                                  ? `Enter ${field.label.toLowerCase()} (e.g., 1, 2, 3)`
+                                  : field.name === "size"
+                                    ? `Enter ${field.label.toLowerCase()} (e.g., small, large, medium)`
+                                    : `Enter ${field.label.toLowerCase()}`}
                           className="h-9 sm:h-10 text-xs sm:text-sm"
                         />
                       )}

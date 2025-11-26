@@ -1,10 +1,11 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Pencil,CheckCircle } from "lucide-react";
+import { User, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminLayout } from "@/components/AdminLayout";
+import { toast } from "sonner";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -19,7 +20,6 @@ const Profile = () => {
   });
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [showAlert, setShowAlert] = useState(false);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -38,25 +38,11 @@ const Profile = () => {
   };
 
   const handleSave = () => {
-    // Show success alert at top
-    setShowAlert(true);
-
-    // Hide alert after 3 seconds
-    setTimeout(() => {
-      setShowAlert(false);
-    }, 3000);
+    toast.success("Profile updated successfully!");
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F2F4E9] via-[#D9E8D5] to-[#A1D7C4] relative">
-      {/* ✅ Fixed top success alert */}
-      {showAlert && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-100 border border-green-400 text-green-800 px-6 py-3 rounded-lg flex items-center shadow-lg animate-fade-down">
-          <CheckCircle className="mr-2 text-green-600" size={20} />
-          <span className="font-medium">Profile updated successfully!</span>
-        </div>
-      )}
-
       <AdminLayout title="Profile">
         <main className="container px-4 py-10 flex flex-col items-center justify-center">
           <div className="max-w-md w-full bg-white/80 rounded-3xl shadow-xl p-8 space-y-6 mt-6">

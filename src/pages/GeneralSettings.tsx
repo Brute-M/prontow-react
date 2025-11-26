@@ -4,6 +4,7 @@ import { AdminLayout } from "@/components/AdminLayout";
 import { motion } from "framer-motion";
 import { Camera } from "lucide-react";
 import axios from "axios";
+import { toast } from "sonner";
 
 function GeneralSettings() {
   const [formData, setFormData] = useState({
@@ -15,20 +16,19 @@ function GeneralSettings() {
     profilePic: "",
   });
   const [twoFactorAuth, setTwoFactorAuth] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profileImagePreview, setProfileImagePreview] = useState("");
-  const [showAlert, setShowAlert] = useState(false);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const API_URL = "http://13.61.23.154:5000/api/profile/admin";
 
-  // Load saved data from localStorage on component mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem('adminProfile');
-    if (savedProfile) {
-      try {
-        const profileData = JSON.parse(savedProfile);
+    const fetchAndSetProfile = async () => {
+      setLoading(true);
+      const savedProfile = localStorage.getItem("adminProfile");
+
+      const populateForm = (profileData) => {
         setFormData({
           firstName: profileData.firstName || "",
           lastName: profileData.lastName || "",
@@ -39,26 +39,62 @@ function GeneralSettings() {
         });
         setProfileImagePreview(profileData.profilePic || "");
         setIsDataLoaded(true);
-      } catch (error) {
-        console.error("Error loading saved profile:", error);
+      };
+
+      if (savedProfile) {
+        populateForm(JSON.parse(savedProfile));
+        setLoading(false);
+      } else {
+        // If not in localStorage, fetch from API
+        try {
+          const token = getAuthToken();
+          if (!token) {
+            // Handle case where user is not authenticated
+            setLoading(false);
+            return;
+          }
+          const response = await axios.get(API_URL, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (response.data.status && response.data.data) {
+            const profileData = response.data.data;
+            populateForm(profileData);
+            localStorage.setItem("adminProfile", JSON.stringify(profileData));
+          }
+        } catch (error) {
+          console.error("Failed to fetch profile:", error);
+        } finally {
+          setLoading(false);
+        }
       }
-    }
+    };
+
+    fetchAndSetProfile();
   }, []);
 
   const getAuthToken = () => {
-    // Try to get token from localStorage
-    const token = localStorage.getItem('token') || 
-                  localStorage.getItem('authToken') || 
-                  localStorage.getItem('accessToken');
-    return token;
+    return localStorage.getItem("token");
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    if (name === "phoneNumber") {
+      const numericValue = value.replace(/\D/g, "");
+      const limitedValue = numericValue.slice(0, 10);
+      setFormData((prev) => ({ ...prev, [name]: limitedValue }));
+    } else if (name === "dateofBirth") {
+      const digits = value.replace(/\D/g, "").slice(0, 8);
+      let formatted = digits;
+      if (digits.length > 4) {
+        formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
+      }
+      if (digits.length > 6) {
+        formatted = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+      }
+      setFormData((prev) => ({ ...prev, [name]: formatted }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleImageChange = (e) => {
@@ -74,83 +110,63 @@ function GeneralSettings() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (formData.phoneNumber && formData.phoneNumber.length < 10) {
+      toast.warning("Incomplete phone number. Please enter a 10-digit number.");
+      return;
+    }
+
     try {
       setSaving(true);
       const token = getAuthToken();
-      
       if (!token) {
-        alert("No authentication token found. Please login again.");
+        toast.error("No authentication token found. Please login again.");
         return;
       }
-      
-      // Try PUT method first (most common for updates)
+
       const response = await axios.put(API_URL, formData, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
-      
+
       if (response.data.status) {
-        // Update the profile image preview with the saved image
-        if (response.data.data.profilePic) {
-          setProfileImagePreview(response.data.data.profilePic);
-        }
-        
-        // Update formData with the response data to reflect saved changes
         const updatedData = response.data.data;
+        const finalProfilePic = updatedData.profilePic || formData.profilePic || "";
         const newFormData = {
           firstName: updatedData.firstName || "",
           lastName: updatedData.lastName || "",
           email: updatedData.email || "",
           phoneNumber: updatedData.phoneNumber || "",
           dateofBirth: updatedData.dateofBirth ? updatedData.dateofBirth.split("T")[0] : "",
-          profilePic: updatedData.profilePic || "",
+          profilePic: finalProfilePic,
         };
-        
+
         setFormData(newFormData);
-        
-        // Save to localStorage so it persists across page navigation
-        localStorage.setItem('adminProfile', JSON.stringify(updatedData));
-        
-        // Show success alert
-        setShowAlert(true);
-        
-        // Hide alert after 3 seconds
-        setTimeout(() => {
-          setShowAlert(false);
-        }, 3000);
+        setProfileImagePreview(finalProfilePic);
+        localStorage.setItem("adminProfile", JSON.stringify(updatedData));
+
+        toast.success("Profile updated successfully!");
       }
     } catch (error) {
       console.error("Error updating profile:", error);
-      
-      // Show user-friendly error message
       if (error.response?.status === 401) {
-        alert('Session expired. Please login again.');
+        toast.error("Session expired. Please login again.");
       } else if (error.response) {
-        alert(`Failed to update profile: ${error.response.data.message || 'Please try again.'}`);
+        toast.error(`Failed to update profile: ${error.response.data.message || "Please try again."}`);
       } else if (error.request) {
-        alert('No response from server. Please check your connection.');
+        toast.error("No response from server. Please check your connection.");
       } else {
-        alert('Failed to update profile. Please try again.');
+        toast.error("Failed to update profile. Please try again.");
       }
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    if (loading) {
+  if (loading && !isDataLoaded) {
     return (
-      <AdminLayout title="Settings > General Settings">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-gray-600">Loading...</div>
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  return (
       <AdminLayout title="Settings > General Settings">
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-gray-600">Loading...</div>
@@ -167,24 +183,6 @@ function GeneralSettings() {
         transition={{ duration: 0.5, ease: "easeInOut" }}
         className="p-4 sm:p-6"
       >
-        {/* Success Alert */}
-        {showAlert && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mx-auto max-w-2xl mb-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center justify-between"
-          >
-            <span className="font-medium">Profile updated successfully!</span>
-            <button
-              onClick={() => setShowAlert(false)}
-              className="text-green-600 hover:text-green-800"
-            >
-              ✕
-            </button>
-          </motion.div>
-        )}
-
         <form onSubmit={handleSubmit}>
           <div className="mx-auto max-w-2xl rounded-lg bg-white p-6 shadow-sm">
             {/* Profile Picture */}
@@ -275,6 +273,7 @@ function GeneralSettings() {
                   name="dateofBirth"
                   value={formData.dateofBirth}
                   onChange={handleInputChange}
+                  onKeyDown={(e) => e.preventDefault()}
                   className="w-full px-4 py-2 border border-black rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-black outline-none"
                   placeholder="Date of Birth"
                 />

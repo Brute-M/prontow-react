@@ -8,6 +8,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { toast } from "sonner";
 
 export default function TwoFactorAuth() {
   const navigate = useNavigate();
@@ -39,8 +40,8 @@ export default function TwoFactorAuth() {
 
     setErrorMsg("");
     
-    // Show alert for OTP sent
-    alert("OTP sent successfully!");
+    // Show toast for OTP sent
+    toast.success("OTP sent successfully!", { duration: 2000 });
     
     // Move to OTP step
     setStep("otp");
@@ -82,8 +83,8 @@ export default function TwoFactorAuth() {
         console.log("✅ Token saved:", token);
         console.log("✅ User info:", user);
         
-        // Show alert for OTP verified
-        alert("OTP verified successfully!");
+        // Show toast for OTP verified
+        toast.success("OTP verified successfully!", { duration: 2000 });
         
         // Navigate to dashboard
         navigate("/dashboard");

@@ -93,9 +93,16 @@ function Opinio() {
         initial="hidden"
         animate="visible"
       >
-        <motion.div className="flex justify-end items-center" 
+        <motion.div className="flex justify-end items-center gap-4" 
         // @ts-ignore
         variants={itemVariants}>
+          <Button
+            variant="outline"
+            className="bg-[#E6E7CA] text-[#1D1D1D] hover:bg-[#119D82] text-xs sm:text-sm flex items-center justify-center gap-2 border-none shadow-sm w-auto"
+            onClick={() => navigate('/games/opinio/ask-question')}
+          >
+            Ask question
+          </Button>
           <button className="text-[#119D82] text-sm font-semibold hover:underline">
             View All
           </button>
@@ -111,7 +118,6 @@ function Opinio() {
             <motion.div
               key={i}
               className="relative bg-[#E8F7E8] rounded-[8px] shadow-md flex justify-between items-center px-4 py-3 border-l border-[#D1EAD1] h-[92px] cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => navigate(`/games/opinio/ask-question`)}
               // @ts-ignore
               variants={itemVariants}
             >

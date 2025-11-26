@@ -132,14 +132,14 @@ export default function InventoryTracking() {
       productName: product.productName || "",
       category: product.category?._id || "",
       company: product.company || "",
-      mrp: product.mrp || "",
-      costPrice: product.costPrice || "",
-      stock: product.stock || "",
+      mrp: product.mrp ?? "",
+      costPrice: product.costPrice ?? "",
+      stock: product.stock ?? "",
       itemCode: product.itemCode || "",
-      gst: product.gst || "",
+      gst: product.gst ?? "",
       hsnCode: product.hsnCode || "",
       size: product.size || "",
-      discount: product.discount || "",
+      discount: product.discount ?? "",
       packSize: product.packSize || "",
       description: product.description || "",
       image: product.image || "",
@@ -195,7 +195,7 @@ export default function InventoryTracking() {
 
   const handleSubmit = async () => {
     // Basic validation
-    if (!formData.productName || !formData.category || !formData.mrp || !formData.stock) {
+    if (!formData.productName || !formData.category || !formData.mrp || formData.stock === "") {
       toast.error("Please fill all required fields.");
       return;
     }
@@ -206,15 +206,15 @@ export default function InventoryTracking() {
         productName: formData.productName,
         category: formData.category,
         company: formData.company,
-        mrp: parseFloat(formData.mrp) || 0,
-        costPrice: parseFloat(formData.costPrice) || 0,
-        stock: parseInt(formData.stock) || 0,
+        mrp: parseFloat(formData.mrp) || 0, // Keep as float
+        costPrice: parseFloat(formData.costPrice) || 0, // Add costPrice
+        stock: parseInt(formData.stock, 10) || 0, // Keep as integer
         itemCode: formData.itemCode,
-        gst: parseFloat(formData.gst) || 0,
+        gst: parseFloat(formData.gst) || 0, // Keep as float
         hsnCode: formData.hsnCode,
-        size: formData.size,
+        size: formData.size, // Add size
         discount: formData.discount,
-        packSize: formData.packSize,
+        packSize: formData.packSize, // Add packSize
         description: formData.description,
       };
 
@@ -266,8 +266,8 @@ export default function InventoryTracking() {
         <div className="flex-1 space-y-4 md:space-y-6 min-w-0">
           {/* 🔍 Search Bar */}
           <div className="flex flex-wrap justify-between items-center gap-3 md:gap-4">
-            <div className="relative w-full sm:w-[300px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+            <div className="relative w-full sm:w-full max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
               <Input
                 placeholder="Search by name, brand, category or code"
                 className="pl-9 sm:pl-10 pr-4 py-2 text-sm bg-muted border-0 rounded-full shadow-sm focus:ring-2 focus:ring-[#007E66]"
@@ -320,10 +320,10 @@ export default function InventoryTracking() {
                             </div>
                           </td>
                           <td className="px-4 py-3 max-w-[200px] truncate">{product.productName || 'N/A'}</td>
-                          <td className="px-4 py-3">{product.stock || 0}</td>
+                          <td className="px-4 py-3">{product.stock ?? 0}</td>
                           <td className="px-4 py-3">Rs. {product.mrp || 0}</td>
                           <td className={`px-4 py-3 font-semibold ${getStockColor(product.stock)}`}>
-                            {product.stock}
+                            {product.stock ?? 0}
                           </td>
                           <td className="px-4 py-3 text-right">
                             <DropdownMenu>
@@ -440,9 +440,9 @@ export default function InventoryTracking() {
                       </DropdownMenu>
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-gray-100 mt-2">
-                      <p><span className="text-gray-500">Qty: </span>{product.stock || 0}</p>
+                      <p><span className="text-gray-500">Qty: </span>{product.stock ?? 0}</p>
                       <p><span className="text-gray-500">Price: </span>Rs. {product.mrp || 0}</p>
-                      <p><span className="text-gray-500">Stock: </span><span className={getStockColor(product.stock)}>{product.stock}</span></p>
+                      <p><span className="text-gray-500">Stock: </span><span className={getStockColor(product.stock)}>{product.stock ?? 0}</span></p>
                     </div>
                   </motion.div>
                 ))
@@ -513,7 +513,7 @@ export default function InventoryTracking() {
               <div><p className="text-sm text-muted-foreground">Category</p><p className="font-medium">{viewingProduct?.category?.name || "N/A"}</p></div>
               <div><p className="text-sm text-muted-foreground">MRP</p><p className="font-medium">Rs. {viewingProduct?.mrp || 0}</p></div>
               <div><p className="text-sm text-muted-foreground">Cost Price</p><p className="font-medium">Rs. {viewingProduct?.costPrice || 0}</p></div>
-              <div><p className="text-sm text-muted-foreground">Stock</p><p className={`font-medium ${getStockColor(viewingProduct?.stock)}`}>{viewingProduct?.stock || 0}</p></div>
+              <div><p className="text-sm text-muted-foreground">Stock</p><p className={`font-medium ${getStockColor(viewingProduct?.stock)}`}>{viewingProduct?.stock ?? 0}</p></div>
               <div><p className="text-sm text-muted-foreground">GST</p><p className="font-medium">{viewingProduct?.gst || 0}%</p></div>
             </div>
             {viewingProduct?.description && (
@@ -549,7 +549,18 @@ export default function InventoryTracking() {
               <h2 className="text-xl font-semibold">
                 {editingProduct ? "Edit Product" : "Add Product"}
               </h2>
-              <button onClick={() => { setShowForm(false); resetForm(); }} className={buttonVariants({ variant: "ghost", size: "sm" }) + " h-8 w-8 p-0"}><X className="w-5 h-5" /></button>
+              <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingProduct(null);
+                    resetForm();
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
             </div>
             <div className="p-6 space-y-4 overflow-y-auto">
               <div className="space-y-2">
@@ -610,7 +621,15 @@ export default function InventoryTracking() {
                         type={field.type || "text"}
                         value={formData[field.name]}
                         onChange={handleChange}
-                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                        placeholder={
+                          field.name === "hsnCode"
+                            ? `Enter ${field.label.toLowerCase()} (for eg., 22011010)`
+                            : field.name === "itemCode"
+                            ? `Enter ${field.label.toLowerCase()} (for eg., CMT1234)`
+                            : field.name === "size"
+                            ? `Enter ${field.label.toLowerCase()} (for eg., small, large, medium)`
+                            : field.name === "packSize" ? `Enter ${field.label.toLowerCase()} (1, 2, 3)` : `Enter ${field.label.toLowerCase()}`
+                        }
                       />
                     )}
                     {errors[field.name] && <span className="text-red-500 text-xs mt-1">{errors[field.name]}</span>}

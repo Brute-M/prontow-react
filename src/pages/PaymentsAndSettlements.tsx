@@ -49,14 +49,12 @@ interface OrderDetails {
   shippingAddress: string;
   items: string;
   settled: boolean;
-  userId: string;
   razorpayOrderId: string;
   razorpayPaymentId: string;
-  trackingTimeline: string;
+  trackingTimeline: any[];
 }
 
 function PaymentsAndSettlements() {
-  const [searchTerm, setSearchTerm] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<OrderDetails | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -94,8 +92,6 @@ function PaymentsAndSettlements() {
 
       // Transform API data to match your actual response structure
       const transformedTransactions = orders.map((order: any) => {
-        console.log("Order item:", order);
-
         return {
           id: order._id || "#N/A",
           date: order.createdAt
@@ -115,7 +111,6 @@ function PaymentsAndSettlements() {
         };
       });
 
-      console.log("Transformed transactions:", transformedTransactions);
       setTransactions(transformedTransactions);
       setCurrentPage(1); // Reset to first page when data loads
     } catch (err: any) {
@@ -164,17 +159,16 @@ function PaymentsAndSettlements() {
       address.state || ""
     } - ${address.zip || ""}, ${address.country || ""}`.trim();
 
-    // Format tracking timeline
-    const timeline = tracking.timeline || [];
-    const timelineText =
-      timeline
-        .map(
-          (t: any) =>
-            `${t.status}: ${t.message} (${new Date(t.timestamp).toLocaleString(
-              "en-GB"
-            )})`
-        )
-        .join("\n") || "No tracking updates";
+    // Filter out consecutive duplicate timeline events
+    const rawTimeline = tracking.timeline || [];
+    const uniqueTimeline = rawTimeline.reduce((acc, current) => {
+      const lastEvent = acc[acc.length - 1];
+      // Add the event only if it's the first one or its status is different from the last one
+      if (!lastEvent || lastEvent.status !== current.status) {
+        acc.push(current);
+      }
+      return acc;
+    }, []);
 
     const orderDetails: OrderDetails = {
       orderId: transaction.id,
@@ -206,10 +200,9 @@ function PaymentsAndSettlements() {
       shippingAddress: addressText || "N/A",
       items: itemsText,
       settled: transaction.settled,
-      userId: order?.user || "N/A",
       razorpayOrderId: order?.razorpayOrderId || "N/A",
       razorpayPaymentId: order?.razorpayPaymentId || "N/A",
-      trackingTimeline: timelineText,
+      trackingTimeline: uniqueTimeline,
     };
 
     setSelectedOrder(orderDetails);
@@ -218,7 +211,6 @@ function PaymentsAndSettlements() {
 
   const filteredTransactions = transactions.filter((transaction) => {
     const query = searchQuery.toLowerCase();
-
     return (
       transaction.id.toLowerCase().includes(query) ||
       transaction.date.toLowerCase().includes(query) ||
@@ -253,16 +245,13 @@ function PaymentsAndSettlements() {
 
           {/* Search Bar */}
           <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <div className="relative flex-1 w-full">
+            <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search By Transaction ID"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && setSearchQuery(searchTerm)
-                }
+                placeholder="Search by ID, date, method..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="
     pl-12 pr-4 
     h-9 sm:h-10          /* 👈 Same height as icons */
@@ -279,13 +268,6 @@ function PaymentsAndSettlements() {
             </div>
 
             <div className="flex gap-2 justify-end sm:justify-start">
-              <button
-                onClick={() => setSearchQuery(searchTerm)}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#119D82] hover:bg-[#0d7d68] text-white flex items-center justify-center transition-colors"
-              >
-                <Search className="w-4 h-4" />
-              </button>
-
               <button
                 onClick={fetchOrders}
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#119D82] hover:bg-[#0d7d68] text-white flex items-center justify-center transition-colors"
@@ -525,15 +507,6 @@ function PaymentsAndSettlements() {
                     </div>
 
                     <div className="flex justify-between items-center text-sm sm:text-base">
-                      <span className="text-gray-700 font-medium">
-                        User ID:
-                      </span>
-                      <span className="font-semibold text-gray-900">
-                        {selectedOrder.userId}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between items-center text-sm sm:text-base">
                       <span className="text-gray-700 font-medium">Status:</span>
                       <span
                         className={`font-semibold ${
@@ -601,10 +574,38 @@ function PaymentsAndSettlements() {
                       <span className="text-gray-700 font-medium">
                         Tracking Timeline:
                       </span>
-                      <div className="bg-gray-50 p-3 rounded-lg">
-                        <pre className="text-xs whitespace-pre-wrap font-mono text-gray-900">
-                          {selectedOrder.trackingTimeline}
-                        </pre>
+                      <div className="bg-gray-50 p-4 rounded-lg mt-1">
+                        <div className="relative">
+                          {selectedOrder.trackingTimeline.length > 0 ? (
+                            selectedOrder.trackingTimeline.map(
+                              (event, index) => (
+                                <div key={index} className="mb-4 pl-6 relative">
+                                  <div className="absolute left-0 top-1 w-3 h-3 rounded-full bg-[#119D82] z-10 border-2 border-white"></div>
+                                  {index <
+                                    selectedOrder.trackingTimeline.length -
+                                      1 && (
+                                    <div className="absolute top-2 left-[5px] h-full w-px bg-gray-300"></div>
+                                  )}
+                                  <p className="text-sm font-semibold text-gray-900">
+                                    {event.status}
+                                  </p>
+                                  <p className="text-xs text-gray-600">
+                                    {event.message}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-0.5">
+                                    {new Date(event.timestamp).toLocaleString(
+                                      "en-GB"
+                                    )}
+                                  </p>
+                                </div>
+                              )
+                            )
+                          ) : (
+                            <p className="text-xs text-gray-500">
+                              No tracking updates available.
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
 
