@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { motion } from "framer-motion";
-import { Camera } from "lucide-react";
-import axios from "axios";
+import { Camera, User } from "lucide-react";
 import { toast } from "sonner";
+import { getAdminProfile, updateAdminProfile } from "@/adminApi/profileApi";
 
 function GeneralSettings() {
   const [formData, setFormData] = useState({
@@ -21,8 +21,6 @@ function GeneralSettings() {
   const [profileImagePreview, setProfileImagePreview] = useState("");
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  const API_URL = "http://13.61.23.154:5000/api/profile/admin";
-
   useEffect(() => {
     const fetchAndSetProfile = async () => {
       setLoading(true);
@@ -34,10 +32,12 @@ function GeneralSettings() {
           lastName: profileData.lastName || "",
           email: profileData.email || "",
           phoneNumber: profileData.phoneNumber || "",
-          dateofBirth: profileData.dateofBirth ? profileData.dateofBirth.split("T")[0] : "",
+          dateofBirth: profileData.dateofBirth
+            ? profileData.dateofBirth.split("T")[0]
+            : "",
           profilePic: profileData.profilePic || "",
         });
-        setProfileImagePreview(profileData.profilePic || "");
+        setProfileImagePreview(profileData.profilePic);
         setIsDataLoaded(true);
       };
 
@@ -45,36 +45,27 @@ function GeneralSettings() {
         populateForm(JSON.parse(savedProfile));
         setLoading(false);
       } else {
-        // If not in localStorage, fetch from API
-        try {
-          const token = getAuthToken();
-          if (!token) {
-            // Handle case where user is not authenticated
-            setLoading(false);
-            return;
-          }
-          const response = await axios.get(API_URL, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (response.data.status && response.data.data) {
-            const profileData = response.data.data;
-            populateForm(profileData);
-            localStorage.setItem("adminProfile", JSON.stringify(profileData));
-          }
-        } catch (error) {
-          console.error("Failed to fetch profile:", error);
-        } finally {
-          setLoading(false);
+        setLoading(true); // Only show main loader if no cache
+      }
+
+      // Always fetch latest data in the background
+      try {
+        const response = await getAdminProfile();
+        if (response.status) {
+          const profileData = response.data;
+          populateForm(profileData);
+          localStorage.setItem("adminProfile", JSON.stringify(profileData));
         }
+      } catch (error) {
+        console.error("Failed to fetch profile:", error);
+        if (!savedProfile) toast.error("Failed to load profile.");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchAndSetProfile();
   }, []);
-
-  const getAuthToken = () => {
-    return localStorage.getItem("token");
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -89,7 +80,10 @@ function GeneralSettings() {
         formatted = `${digits.slice(0, 4)}-${digits.slice(4)}`;
       }
       if (digits.length > 6) {
-        formatted = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+        formatted = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(
+          6,
+          8
+        )}`;
       }
       setFormData((prev) => ({ ...prev, [name]: formatted }));
     } else {
@@ -118,35 +112,25 @@ function GeneralSettings() {
 
     try {
       setSaving(true);
-      const token = getAuthToken();
-      if (!token) {
-        toast.error("No authentication token found. Please login again.");
-        return;
-      }
+      // Exclude email from the payload to prevent it from being updated
+      const { email, ...updatePayload } = formData;
 
-      const response = await axios.put(API_URL, formData, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await updateAdminProfile(updatePayload);
 
-      if (response.data.status) {
-        const updatedData = response.data.data;
-        const finalProfilePic = updatedData.profilePic || formData.profilePic || "";
-        const newFormData = {
+      if (response.status) {
+        const updatedData = response.data;
+        setFormData({
           firstName: updatedData.firstName || "",
           lastName: updatedData.lastName || "",
-          email: updatedData.email || "",
+          email: formData.email, // Keep the original email in the state
           phoneNumber: updatedData.phoneNumber || "",
-          dateofBirth: updatedData.dateofBirth ? updatedData.dateofBirth.split("T")[0] : "",
-          profilePic: finalProfilePic,
-        };
-
-        setFormData(newFormData);
-        setProfileImagePreview(finalProfilePic);
+          dateofBirth: updatedData.dateofBirth
+            ? updatedData.dateofBirth.split("T")[0]
+            : "",
+          profilePic: updatedData.profilePic || "",
+        });
+        setProfileImagePreview(updatedData.profilePic || "");
         localStorage.setItem("adminProfile", JSON.stringify(updatedData));
-
         toast.success("Profile updated successfully!");
       }
     } catch (error) {
@@ -154,7 +138,11 @@ function GeneralSettings() {
       if (error.response?.status === 401) {
         toast.error("Session expired. Please login again.");
       } else if (error.response) {
-        toast.error(`Failed to update profile: ${error.response.data.message || "Please try again."}`);
+        toast.error(
+          `Failed to update profile: ${
+            error.response.data.message || "Please try again."
+          }`
+        );
       } else if (error.request) {
         toast.error("No response from server. Please check your connection.");
       } else {
@@ -188,16 +176,20 @@ function GeneralSettings() {
             {/* Profile Picture */}
             <div className="flex justify-center mb-8">
               <div className="relative">
-                <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                <div
+                  className="w-28 h-28 rounded-full bg-teal-100 text-teal-700 
+border flex items-center justify-center overflow-hidden 
+shadow-sm text-center text-4xl font-semibold leading-none"
+                >
                   {profileImagePreview ? (
                     <img
                       src={profileImagePreview}
-                      alt="Profile"
+                      alt={formData.firstName?.charAt(0)?.toUpperCase() || "P"}
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-gray-600 text-2xl font-semibold">
-                      {formData.firstName ? formData.firstName.charAt(0).toUpperCase() : "U"}
+                    <span className="flex items-center justify-center w-full h-full text-4xl font-semibold leading-none">
+                      {formData.firstName?.charAt(0)?.toUpperCase() || "A"}
                     </span>
                   )}
                 </div>
@@ -251,8 +243,9 @@ function GeneralSettings() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-black rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-black outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed text-gray-500"
                   placeholder="Email"
+                  disabled
                 />
               </div>
 

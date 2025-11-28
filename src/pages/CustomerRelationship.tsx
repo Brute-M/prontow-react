@@ -43,6 +43,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { Calendar } from "@/components/ui/calendar";
 
@@ -312,36 +318,45 @@ export default function CustomerRelationship() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "rounded-full bg-[#E8E8C6] text-gray-700 hover:bg-[#dddcae] text-sm sm:text-base border-none",
-                    !dateRange && "text-gray-600"
-                  )}
-                >
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Date Range ▼</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={1} />
-                <div className="p-2 border-t flex justify-end gap-2">
-                  <Button variant="outline" size="sm" onClick={() => { setDateRange(undefined); fetchCustomers(); }}>Clear</Button>
-                  <Button size="sm" className="bg-[#119D82] hover:bg-[#0e866f] text-white" onClick={handleDateRangeFilter}>Apply</Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <TooltipProvider>
+              <Tooltip>
+                <Popover>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "rounded-full bg-[#E8E8C6] text-gray-700 hover:bg-[#dddcae] text-sm sm:text-base border-none",
+                          !dateRange && "text-gray-600"
+                        )}
+                      >
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>Date Range ▼</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange} onSelect={setDateRange} numberOfMonths={1} />
+                    <div className="p-2 border-t flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => { setDateRange(undefined); fetchCustomers(); }}>Clear</Button>
+                      <Button size="sm" className="bg-[#119D82] hover:bg-[#0e866f] text-white" onClick={handleDateRangeFilter}>Apply</Button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <TooltipContent>
+                  <p>Start Date - End Date</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
@@ -390,13 +405,14 @@ export default function CustomerRelationship() {
                     <Input
                       name="phoneNumber"
                       value={newCustomer.phoneNumber}
-                      onChange={handleInputChange}
-                      onInput={(e) => {
-                        // @ts-ignore
-                        e.target.value = e.target.value.slice(0, 10); // Limit to 10 digits
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow only numbers and limit to 10 digits
+                        if (/^\d*$/.test(value) && value.length <= 10) {
+                          handleInputChange(e);
+                        }
                       }}
                       placeholder="Mobile Number *"
-                      type="number"
                       className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400"
                     />
                     <Input
@@ -412,24 +428,9 @@ export default function CustomerRelationship() {
                         name="dateOfBirth"
                         type="text"
                         value={newCustomer.dateOfBirth}
-                        onChange={(e) => {
-                          const previousValue = newCustomer.dateOfBirth;
-                          const { value } = e.target;
-                          const digits = value.replace(/\D/g, '');
-1
-                          if (value.length > previousValue.length) {
-                            if (digits.length === 2 || digits.length === 4) {
-                              setNewCustomer((prev) => ({ ...prev, dateOfBirth: `${value}/` }));
-                            } else {
-                              setNewCustomer((prev) => ({ ...prev, dateOfBirth: value }));
-                            }
-                          }
-                          else {
-                            setNewCustomer((prev) => ({ ...prev, dateOfBirth: value }));
-                          }
-                        }}
+                        readOnly
                         placeholder="DD/MM/YYYY"
-                        className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400 pr-10"
+                        className="w-full h-12 bg-gray-50 border-gray-200 rounded-lg text-gray-600 placeholder:text-gray-400 pr-10 cursor-pointer"
                       />
                       <Popover>
                         <PopoverTrigger asChild>
@@ -691,15 +692,6 @@ export default function CustomerRelationship() {
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 pt-4 border-t">
-                  <Button
-                    className="flex-1 bg-[#119D82] hover:bg-[#0e866f] text-white"
-                    onClick={() => {
-                      setIsDetailsOpen(false);
-                      // Add edit functionality here
-                    }}
-                  >
-                    Edit Customer
-                  </Button>
                   <Button
                     variant="outline"
                     className="flex-1"

@@ -241,8 +241,19 @@ function SpinTheWheel() {
 
     const toastId = toast.loading("Updating wheel...");
     try {
+      // If activating this wheel, find and deactivate any other active wheel first.
+      if (editingWheel.isActive) {
+        const currentlyActiveWheel = wheels.find(w => w.isActive && w._id !== editingWheel._id);
+        if (currentlyActiveWheel) {
+          toast.info(`Deactivating previously active wheel: ${currentlyActiveWheel.name}`);
+          const deactivatePayload = { name: currentlyActiveWheel.name, sections: currentlyActiveWheel.sections, isActive: false };
+          await updateSpinWheel(currentlyActiveWheel._id, deactivatePayload);
+        }
+      }
+
       const payload: AddWheelPayload = {
         name: editingWheel.name,
+        isActive: editingWheel.isActive,
         // @ts-ignore
         sections: editingWheel.sections.map(({ title, type, value, color, probability }) => ({
           title, type, value, color, probability
@@ -253,8 +264,14 @@ function SpinTheWheel() {
 
       if (response.data && response.data.status) {
         toast.success("Wheel updated successfully!", { id: toastId });
+        // Optimistically update the UI for instant feedback
+        setWheels(prevWheels => 
+          prevWheels.map(w => 
+            w._id === editingWheel._id ? { ...w, ...payload } : w
+          )
+        );
         setEditingWheel(null);
-        fetchWheels(); // Refresh the list
+        fetchWheels(); // Still refetch in the background to ensure data consistency
       } else {
         throw new Error(response.data?.message || "Failed to update wheel");
       }
@@ -406,10 +423,10 @@ function SpinTheWheel() {
               User Spin Record
             </h3>
 
-            <div className="flex flex-wrap gap-3">
+             {/* <div className="flex flex-wrap gap-3"> */}
 
               {/* Wheel Filter */}
-              <DropdownMenu>
+              {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button className="rounded-full bg-[#E6EAC3] text-[#4A4A4A]">
                     {wheelFilter}
@@ -427,10 +444,10 @@ function SpinTheWheel() {
                     New Year Wheel
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu> */}
 
               {/* Date Range Filter */}
-              <DropdownMenu>
+              {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button className="rounded-full bg-[#E6EAC3] text-[#4A4A4A]">
                     {dateFilter === "All" ? "Date Range" : dateFilter}
@@ -448,9 +465,9 @@ function SpinTheWheel() {
                     Last 30 Days
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu> */}
 
-            </div>
+            {/* </div> */}
           </div>
 
           <div className="overflow-x-auto">
@@ -580,7 +597,9 @@ function SpinTheWheel() {
                       checked={editingWheel.isActive}
                       onCheckedChange={(checked) => setEditingWheel({ ...editingWheel, isActive: checked })}
                     />
-                    <Label htmlFor="isActive">Active</Label>
+                    <Label htmlFor="isActive" className={`font-medium ${editingWheel.isActive ? 'text-green-600' : 'text-red-600'}`}>
+                      {editingWheel.isActive ? "Active" : "Inactive"}
+                    </Label>
                   </div>
                 </div>
 

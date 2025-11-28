@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { getAllTickets, updateTicketStatus } from '@/adminApi/supportApi';
-import { Toaster, toast } from 'sonner';
+import {toast } from 'sonner';
 
 interface Ticket {
   _id: string; // Raw ID for API calls
@@ -141,6 +141,9 @@ function Support() {
           const priorityOrder = { 'High': 0, 'Medium': 1, 'Low': 2 };
           aValue = priorityOrder[aValue as 'High' | 'Medium' | 'Low'];
           bValue = priorityOrder[bValue as 'High' | 'Medium' | 'Low'];
+        } else if (sortConfig.key === 'customerName') {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
         }
 
         if (aValue < bValue) {

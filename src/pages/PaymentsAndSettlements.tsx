@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Search,
-  SlidersHorizontal,
+  RefreshCw,
   Loader2,
   ChevronLeft,
   ChevronRight,
@@ -273,7 +273,7 @@ function PaymentsAndSettlements() {
                 className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#119D82] hover:bg-[#0d7d68] text-white flex items-center justify-center transition-colors"
                 title="Refresh"
               >
-                <SlidersHorizontal className="w-4 h-4" />
+                <RefreshCw className="w-4 h-4" />
               </button>
             </div>
           </div>

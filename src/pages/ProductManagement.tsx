@@ -103,6 +103,8 @@ export default function ProductManagement() {
   const [selectedParentCategory, setSelectedParentCategory] = useState("");
   const [newSubCategoryName, setNewSubCategoryName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [selectedProductForDetails, setSelectedProductForDetails] = useState(null);
 
   const [formData, setFormData] = useState({
     brandName: "",
@@ -391,6 +393,11 @@ export default function ProductManagement() {
     setShowForm(true);
   };
 
+  const handleViewDetails = (product) => {
+    setSelectedProductForDetails(product);
+    setIsDetailsDialogOpen(true);
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
       try {
@@ -589,6 +596,9 @@ const filteredProducts = Array.isArray(products)
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewDetails(product)}>
+                              View Details
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEdit(product)}>
                               Edit
                             </DropdownMenuItem>
@@ -654,6 +664,9 @@ const filteredProducts = Array.isArray(products)
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewDetails(product)}>
+                          View Details
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEdit(product)}>
                           Edit
                         </DropdownMenuItem>
@@ -1091,6 +1104,109 @@ const filteredProducts = Array.isArray(products)
           </DialogContent>
         </Dialog>
       </motion.div>
+
+      {/* View Details Dialog */}
+      <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-0">
+          {selectedProductForDetails && (
+            <>
+              <DialogHeader className="p-6 pb-4">
+                <DialogTitle className="text-2xl font-bold text-gray-800">
+                  Product Details
+                </DialogTitle>
+                <DialogDescription>
+                  Detailed information about {selectedProductForDetails.productName}.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="p-6 space-y-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="md:w-1/3 flex-shrink-0">
+                    <div className="aspect-square bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden border">
+                      {selectedProductForDetails.image ? (
+                        <img
+                          src={selectedProductForDetails.image}
+                          alt={selectedProductForDetails.productName}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <ImageIcon className="w-16 h-16 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="md:w-2/3 grid grid-cols-2 gap-x-6 gap-y-4">
+                    <div className="col-span-2">
+                      <p className="text-sm text-gray-500">Product Name</p>
+                      <p className="text-lg font-semibold text-gray-900">{selectedProductForDetails.productName || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Brand</p>
+                      <p className="text-base font-medium text-gray-800">{selectedProductForDetails.brandName || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Category</p>
+                      <p className="text-base font-medium text-gray-800">{selectedProductForDetails.category?.name || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Item Code</p>
+                      <p className="text-base font-medium text-gray-800">{selectedProductForDetails.itemCode || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">HSN Code</p>
+                      <p className="text-base font-medium text-gray-800">{selectedProductForDetails.hsnCode || "N/A"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Pricing & Stock</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500">MRP</p>
+                      <p className="text-base font-semibold text-gray-900">₹{selectedProductForDetails.mrp?.toFixed(2) || "0.00"}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500">Cost Price</p>
+                      <p className="text-base font-semibold text-gray-900">₹{selectedProductForDetails.costPrice?.toFixed(2) || "0.00"}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500">Discount</p>
+                      <p className="text-base font-semibold text-gray-900">{selectedProductForDetails.discount || 0}%</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500">GST</p>
+                      <p className="text-base font-semibold text-gray-900">{selectedProductForDetails.gst || 0}%</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500">Stock</p>
+                      <p className={`text-base font-semibold ${selectedProductForDetails.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>{selectedProductForDetails.stock || 0}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500">Pack Size</p>
+                      <p className="text-base font-semibold text-gray-900">{selectedProductForDetails.packSize || "N/A"}</p>
+                    </div>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <p className="text-sm text-gray-500">Size</p>
+                      <p className="text-base font-semibold text-gray-900">{selectedProductForDetails.size || "N/A"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedProductForDetails.description && (
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Description</h3>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{selectedProductForDetails.description}</p>
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter className="p-6 pt-0">
+                <Button variant="outline" onClick={() => setIsDetailsDialogOpen(false)}>Close</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
